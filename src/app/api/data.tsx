@@ -1,28 +1,53 @@
 export const TruestedCompanies: { imgSrc: string }[] = [
   {
-    imgSrc: "/images/companies/airbnb.svg"
+    imgSrc: "/images/companies/amazon.svg"
   },
   {
-    imgSrc: "/images/companies/fedex.svg"
+    imgSrc: "/images/companies/amex.svg"
   },
   {
     imgSrc: "/images/companies/google.svg"
   },
   {
-    imgSrc: "/images/companies/hubspot.svg"
+    imgSrc: "/images/companies/athena.svg"
   },
   {
-    imgSrc: "/images/companies/microsoft.svg"
+    imgSrc: "/images/companies/Atlassian.svg"
   },
   {
     imgSrc: "/images/companies/walmart.svg"
   },
   {
-    imgSrc: "/images/companies/airbnb.svg"
+    imgSrc: "/images/companies/capegemini.svg"
   },
   {
-    imgSrc: "/images/companies/fedex.svg"
+    imgSrc: "/images/companies/de shaw.svg"
+  },
+  {
+    imgSrc: "/images/companies/deloitte.svg"
+  },
+  {
+    imgSrc: "/images/companies/godaddy.svg"
+  },
+  {
+    imgSrc: "/images/companies/HSBC.svg"
+  },
+  {
+    imgSrc: "/images/companies/ibm.svg"
+  },
+  {
+    imgSrc: "/images/companies/infosys.svg"
+  },
+  {
+    imgSrc: "/images/companies/lowes.svg"
+  },
+  {
+    imgSrc: "/images/companies/myntra.svg"
+  },
+  {
+    imgSrc: "/images/companies/verizon.svg"
   }
+
 ]
 
 

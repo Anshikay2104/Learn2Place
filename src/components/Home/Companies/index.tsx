@@ -59,7 +59,15 @@ const Companies = () => {
                     <Slider {...settings}>
                         {TruestedCompanies.map((item, i) =>
                             <div key={i}>
-                                <Image src={`${getImagePrefix()}${item.imgSrc}`} alt={item.imgSrc} width={116} height={36} />
+                                <div className="flex items-center justify-center h-24 w-44 mx-auto">
+                                <Image
+                                    src={`${getImagePrefix()}${item.imgSrc}`}
+                                    alt={item.imgSrc}
+                                    width={120}
+                                    height={60}
+                                    className="object-contain mx-auto grayscale hover:grayscale-0 transition-all duration-300"
+                                    />
+                                </div>
                             </div>
                         )}
                     </Slider>
