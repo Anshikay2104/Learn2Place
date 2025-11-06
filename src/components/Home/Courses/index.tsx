@@ -67,7 +67,7 @@ const Courses = () => {
                     {courseData.map((items, i) => (
                         <div key={i}>
                             <div className="bg-white m-3 mb-12 px-3 pt-3 pb-12 shadow-course-shadow rounded-2xl h-[480px] flex flex-col justify-between">
-s
+
                                 <div className="relative bg-primary/10 rounded-3xl flex items-center justify-center text-center h-[60%] p-6">
                                 <p className="text-xl lg:text-xl text-gray-800 leading-relaxed">
                                     “This is a sample experience post text. The user’s story or summary will appear here and take up most of the card.”
