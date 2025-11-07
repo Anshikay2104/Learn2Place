@@ -1,7 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import { MessageCircle, ArrowUp, ArrowDown, Search, Tag, Plus } from "lucide-react";
-import Link from "next/link";
+import { MessageCircle, ArrowUp, ArrowDown, Search, Tag, Plus, X, ChevronDown, ChevronUp } from "lucide-react";
 
 type Question = {
   id: string;
@@ -12,64 +11,105 @@ type Question = {
   answers: number;
   author: string;
   date: string;
+  replies: Reply[];
 };
 
-const dummyQuestions: Question[] = [
-  {
-    id: "1",
-    title: "How do I prepare for on-campus technical interviews?",
-    body: "I’m in my 3rd year and placements are starting soon. What topics should I focus on for software roles?",
-    tags: ["interview", "placement", "dsa"],
-    upvotes: 42,
-    answers: 8,
-    author: "Priya Sharma",
-    date: "2 days ago",
-  },
-  {
-    id: "2",
-    title: "Best resources to learn React with TypeScript?",
-    body: "I’ve worked with basic React before, but I’m new to TypeScript. Any good tutorials or project ideas?",
-    tags: ["react", "typescript", "frontend"],
-    upvotes: 28,
-    answers: 5,
-    author: "Neha Patel",
-    date: "1 week ago",
-  },
-  {
-    id: "3",
-    title: "How to get started with research internships?",
-    body: "Are there any platforms or professors open for collaboration during summer?",
-    tags: ["research", "internship", "college-life"],
-    upvotes: 19,
-    answers: 3,
-    author: "Aditi Verma",
-    date: "4 days ago",
-  },
-];
+type Reply = {
+  id: string;
+  author: string;
+  text: string;
+  upvotes: number;
+  date: string;
+};
 
 export default function ForumPage() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [showModal, setShowModal] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const filteredQuestions = dummyQuestions.filter(
+  const [questions, setQuestions] = useState<Question[]>([
+    {
+      id: "1",
+      title: "How do I prepare for on-campus technical interviews?",
+      body: "I’m in my 3rd year and placements are starting soon. What topics should I focus on for software roles?",
+      tags: ["interview", "placement", "dsa"],
+      upvotes: 42,
+      answers: 2,
+      author: "Priya Sharma",
+      date: "2 days ago",
+      replies: [
+        { id: "r1", author: "Aarushi Mehta", text: "Focus on DSA, OS, and basic DBMS. Practice LeetCode daily!", upvotes: 15, date: "1 day ago" },
+        { id: "r2", author: "Neha Singh", text: "Also do mock interviews with friends. Confidence matters!", upvotes: 8, date: "20 hours ago" },
+      ],
+    },
+  ]);
+
+  const [newQuestion, setNewQuestion] = useState({ title: "", body: "", tags: "" });
+  const [replyText, setReplyText] = useState<Record<string, string>>({});
+
+  const handleAskQuestion = () => {
+    if (!newQuestion.title.trim() || !newQuestion.body.trim()) return;
+
+    const newQ: Question = {
+      id: Date.now().toString(),
+      title: newQuestion.title,
+      body: newQuestion.body,
+      tags: newQuestion.tags.split(",").map((t) => t.trim()),
+      upvotes: 0,
+      answers: 0,
+      author: "You",
+      date: "just now",
+      replies: [],
+    };
+
+    setQuestions([newQ, ...questions]);
+    setShowModal(false);
+    setNewQuestion({ title: "", body: "", tags: "" });
+  };
+
+  const handleReply = (id: string) => {
+    if (!replyText[id]?.trim()) return;
+
+    const updated = questions.map((q) =>
+      q.id === id
+        ? {
+            ...q,
+            replies: [
+              ...q.replies,
+              {
+                id: Date.now().toString(),
+                author: "You",
+                text: replyText[id],
+                upvotes: 0,
+                date: "just now",
+              },
+            ],
+            answers: q.answers + 1,
+          }
+        : q
+    );
+    setQuestions(updated);
+    setReplyText((prev) => ({ ...prev, [id]: "" }));
+  };
+
+  const filtered = questions.filter(
     (q) =>
       q.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       q.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-6 lg:px-12">
+    <div className="min-h-screen bg-gray-50 pt-48 px-6 lg:px-12">
       <div className="max-w-6xl mx-auto">
         {/* === HEADER === */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-4 sm:mb-0">
-            Student Q&A Forum
-          </h1>
-          <Link
-            href="/forum/ask"
+          <h1 className="text-3xl font-bold text-gray-900 mb-4 sm:mb-0">Student Forum</h1>
+          <button
+            onClick={() => setShowModal(true)}
             className="inline-flex items-center bg-indigo-600 text-white px-4 py-2 rounded-lg shadow hover:bg-indigo-700 transition"
           >
             <Plus className="w-4 h-4 mr-2" /> Ask a Question
-          </Link>
+          </button>
         </div>
 
         {/* === SEARCH BAR === */}
@@ -84,18 +124,16 @@ export default function ForumPage() {
           />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-          {/* === QUESTIONS LIST === */}
-          <div className="lg:col-span-2 space-y-6">
-            {filteredQuestions.map((q) => (
-              <div
-                key={q.id}
-                className="bg-white shadow-md rounded-xl p-6 hover:shadow-lg transition"
-              >
+        {/* === QUESTIONS LIST === */}
+        <div className="space-y-6">
+          {filtered.map((q) => {
+            const topReply =
+              q.replies.length > 0 ? [...q.replies].sort((a, b) => b.upvotes - a.upvotes)[0] : null;
+
+            return (
+              <div key={q.id} className="bg-white shadow-md rounded-xl p-6 hover:shadow-lg transition">
                 <div className="flex justify-between items-start">
-                  <h2 className="text-xl font-semibold text-gray-900 hover:text-indigo-600 cursor-pointer">
-                    {q.title}
-                  </h2>
+                  <h2 className="text-xl font-semibold text-gray-900">{q.title}</h2>
                   <div className="flex flex-col items-center text-gray-600">
                     <ArrowUp className="w-4 h-4 cursor-pointer hover:text-indigo-600" />
                     <span className="font-bold text-gray-800">{q.upvotes}</span>
@@ -105,7 +143,7 @@ export default function ForumPage() {
 
                 <p className="text-gray-700 mt-3">{q.body}</p>
 
-                <div className="mt-4 flex flex-wrap gap-2">
+                <div className="mt-3 flex flex-wrap gap-2">
                   {q.tags.map((tag) => (
                     <span
                       key={tag}
@@ -117,56 +155,128 @@ export default function ForumPage() {
                 </div>
 
                 <div className="mt-4 flex items-center justify-between text-sm text-gray-500">
-                  <span>Asked by <strong>{q.author}</strong> • {q.date}</span>
+                  <span>
+                    Asked by <strong>{q.author}</strong> • {q.date}
+                  </span>
                   <span className="flex items-center">
                     <MessageCircle className="w-4 h-4 mr-1" /> {q.answers} answers
                   </span>
                 </div>
-              </div>
-            ))}
 
-            {filteredQuestions.length === 0 && (
-              <p className="text-gray-500 text-center mt-10">
-                No questions found for “{searchQuery}”
-              </p>
-            )}
-          </div>
-
-          {/* === SIDEBAR === */}
-          <aside className="space-y-8">
-            {/* Trending Tags */}
-            <div className="bg-white rounded-xl shadow p-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                🔥 Trending Tags
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {["placement", "react", "internship", "resume", "webdev", "ai"].map(
-                  (tag) => (
-                    <span
-                      key={tag}
-                      className="bg-gray-100 hover:bg-indigo-100 text-gray-700 hover:text-indigo-700 text-sm px-3 py-1 rounded-full cursor-pointer transition"
-                    >
-                      #{tag}
-                    </span>
-                  )
+                {/* === TOP ANSWER === */}
+                {topReply && (
+                  <div className="bg-indigo-50 mt-4 p-4 rounded-lg">
+                    <p className="text-gray-800 italic">
+                      “{topReply.text}”
+                    </p>
+                    <p className="text-sm text-gray-500 mt-1">
+                      — {topReply.author} ({topReply.upvotes} votes)
+                    </p>
+                  </div>
                 )}
-              </div>
-            </div>
 
-            {/* Top Contributors */}
-            <div className="bg-white rounded-xl shadow p-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                🏆 Top Contributors
-              </h3>
-              <ul className="space-y-3 text-gray-700">
-                <li>👩‍💻 <strong>Riya Singh</strong> — 134 answers</li>
-                <li>🧠 <strong>Tanisha Mehta</strong> — 97 answers</li>
-                <li>👩‍🔬 <strong>Shruti Desai</strong> — 81 answers</li>
-              </ul>
-            </div>
-          </aside>
+                {/* === VIEW ALL REPLIES === */}
+                {q.replies.length > 1 && (
+                  <button
+                    onClick={() => setExpandedId(expandedId === q.id ? null : q.id)}
+                    className="mt-3 text-indigo-600 text-sm font-medium flex items-center hover:underline"
+                  >
+                    {expandedId === q.id ? (
+                      <>
+                        <ChevronUp className="w-4 h-4 mr-1" /> Hide replies
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="w-4 h-4 mr-1" /> View all replies
+                      </>
+                    )}
+                  </button>
+                )}
+
+                {/* === REPLIES LIST === */}
+                {expandedId === q.id && (
+                  <div className="mt-3 space-y-3">
+                    {q.replies.map((r) => (
+                      <div key={r.id} className="bg-gray-50 p-3 rounded-lg">
+                        <p className="text-gray-800">{r.text}</p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          — {r.author} • {r.date}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* === REPLY BOX === */}
+                <div className="mt-4 flex items-start gap-2">
+                  <textarea
+                    rows={2}
+                    placeholder="Write a reply..."
+                    value={replyText[q.id] || ""}
+                    onChange={(e) => setReplyText((prev) => ({ ...prev, [q.id]: e.target.value }))}
+                    className="flex-1 border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-400"
+                  />
+                  <button
+                    onClick={() => handleReply(q.id)}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg"
+                  >
+                    Reply
+                  </button>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
+
+      {/* === ASK QUESTION MODAL === */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center z-50">
+          <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-lg relative">
+            <button
+              onClick={() => setShowModal(false)}
+              className="absolute top-3 right-3 text-gray-400 hover:text-gray-700"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <h2 className="text-2xl font-semibold mb-4">Ask a Question</h2>
+
+            <input
+              type="text"
+              placeholder="Enter a clear title..."
+              value={newQuestion.title}
+              onChange={(e) =>
+                setNewQuestion((prev) => ({ ...prev, title: e.target.value }))
+              }
+              className="w-full border rounded-lg px-3 py-2 mb-3 focus:ring-2 focus:ring-indigo-400"
+            />
+            <textarea
+              rows={4}
+              placeholder="Describe your question..."
+              value={newQuestion.body}
+              onChange={(e) =>
+                setNewQuestion((prev) => ({ ...prev, body: e.target.value }))
+              }
+              className="w-full border rounded-lg px-3 py-2 mb-3 focus:ring-2 focus:ring-indigo-400"
+            />
+            <input
+              type="text"
+              placeholder="Tags (comma separated)"
+              value={newQuestion.tags}
+              onChange={(e) =>
+                setNewQuestion((prev) => ({ ...prev, tags: e.target.value }))
+              }
+              className="w-full border rounded-lg px-3 py-2 mb-5 focus:ring-2 focus:ring-indigo-400"
+            />
+            <button
+              onClick={handleAskQuestion}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg"
+            >
+              Post Question
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
