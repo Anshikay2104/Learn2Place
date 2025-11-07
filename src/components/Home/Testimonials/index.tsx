@@ -1,97 +1,127 @@
 "use client";
+
+import React from "react";
 import Slider from "react-slick";
+import Image from "next/image";
+import { Icon } from "@iconify/react";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
-import React from "react";
-import Image from "next/image";
-import { Icon } from "@iconify/react/dist/iconify.js";
-import { TestimonialData } from "@/app/api/data";
-import { getImagePrefix } from "@/utils/util";
 
-const Testimonial = () => {
+// You can later replace this with your real data import
+const testimonialData = [
+  {
+    id: 1,
+    name: "Priya Sharma",
+    profession: "Computer Science Student",
+    comment:
+      "This platform helped me connect with mentors who guided me through placements. Great experience!",
+    rating: 4.5,
+    imgSrc: "/images/users/user1.jpg",
+  },
+  {
+    id: 2,
+    name: "Rahul Verma",
+    profession: "ECE Student",
+    comment:
+      "I loved how interactive the courses were! I could easily follow along and ask doubts.",
+    rating: 5,
+    imgSrc: "/images/users/user2.jpg",
+  },
+  {
+    id: 3,
+    name: "Aditi Singh",
+    profession: "Final Year B.Tech",
+    comment:
+      "The alumni sessions were insightful. Helped me prepare for interviews efficiently!",
+    rating: 4,
+    imgSrc: "/images/users/user3.jpg",
+  },
+];
 
-    const settings = {
-        dots: true,
-        dotsClass: "slick-dots",
-        infinite: true,
-        slidesToShow: 3,
-        slidesToScroll: 2,
-        arrows: false,
-        autoplay: true,
-        cssEase: "linear",
-        responsive: [
-            {
-                breakpoint: 1200,
-                settings: {
-                    slidesToShow: 3,
-                    slidesToScroll: 1,
-                    infinite: true,
-                    dots: false
-                }
-            },
-            {
-                breakpoint: 800,
-                settings: {
-                    slidesToShow: 2,
-                    slidesToScroll: 1,
-                    infinite: true,
-                    dots: false
-                }
-            },
-            {
-                breakpoint: 600,
-                settings: {
-                    slidesToShow: 1,
-                    slidesToScroll: 1,
-                    infinite: true,
-                    dots: false
-                }
-            }
-        ]
-    };
+export default function Testimonial() {
+  const settings = {
+    dots: true,
+    infinite: true,
+    autoplay: true,
+    speed: 1000,
+    slidesToShow: 3,
+    slidesToScroll: 1,
+    arrows: false,
+    responsive: [
+      {
+        breakpoint: 1024,
+        settings: { slidesToShow: 2, slidesToScroll: 1 },
+      },
+      {
+        breakpoint: 640,
+        settings: { slidesToShow: 1, slidesToScroll: 1 },
+      },
+    ],
+  };
 
-    const renderStars = (rating: number) => {
-        const fullStars = Math.floor(rating);
-        const halfStars = rating % 1 >= 0.5 ? 1 : 0;
-        const emptyStars = 5 - fullStars - halfStars;
-
-        return (
-            <>
-                {Array(fullStars).fill(<Icon icon="tabler:star-filled" className="text-yellow-500 text-xl inline-block" />)}
-                {halfStars > 0 && <Icon icon="tabler:star-half-filled" className="text-yellow-500 text-xl inline-block" />}
-                {Array(emptyStars).fill(<Icon icon="tabler:star-filled" className="text-gray-400 text-xl inline-block" />)}
-            </>
-        );
-    };
+  const renderStars = (rating: number) => {
+    const full = Math.floor(rating);
+    const half = rating % 1 >= 0.5 ? 1 : 0;
+    const empty = 5 - full - half;
 
     return (
-        <section id="testimonial">
-            <div className='container mx-auto lg:max-w-screen-xl md:max-w-screen-md px-4'>
-                <Slider {...settings}>
-                    {TestimonialData.map((items, i) => (
-                        <div key={i}>
-                            <div className={`bg-white rounded-2xl m-4 p-5 my-20 relative ${i % 2 ? 'shadow-testimonial-shadow2' : 'shadow-testimonial-shadow1'}`}>
-                                <div className="absolute top-[-45px]">
-                                    <Image src={`${getImagePrefix()}${items.imgSrc}`}
-                                        alt={items.name} width={100} height={100} className="inline-block" />
-                                </div>
-                                <h4 className='text-base font-normal text-darkgray my-4'>{items.comment}</h4>
-                                <div className="flex justify-between items-center">
-                                    <div>
-                                        <h3 className='text-lg font-medium text-darkbrown pt-4 pb-2'>{items.name}</h3>
-                                        <h3 className='text-sm font-normal text-lightgray pb-2'>{items.profession}</h3>
-                                    </div>
-                                    <div className="flex">
-                                        {renderStars(items.rating)}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </Slider>
-            </div>
-        </section>
+      <div className="flex gap-1">
+        {[...Array(full)].map((_, i) => (
+          <Icon
+            key={`full-${i}`}
+            icon="tabler:star-filled"
+            className="text-yellow-500 text-xl"
+          />
+        ))}
+        {half === 1 && (
+          <Icon
+            icon="tabler:star-half-filled"
+            className="text-yellow-500 text-xl"
+          />
+        )}
+        {[...Array(empty)].map((_, i) => (
+          <Icon
+            key={`empty-${i}`}
+            icon="tabler:star-filled"
+            className="text-gray-300 text-xl"
+          />
+        ))}
+      </div>
     );
-};
+  };
 
-export default Testimonial;
+  return (
+    <section id="testimonials" className="py-20 bg-gray-50">
+      <div className="container mx-auto max-w-7xl px-6">
+        <h2 className="text-3xl font-bold text-center text-gray-800 mb-10">
+          What Students Say
+        </h2>
+
+        <Slider {...settings}>
+          {testimonialData.map((item) => (
+            <div key={item.id} className="px-3">
+              <div className="bg-white rounded-2xl p-6 shadow-md hover:shadow-lg transition-shadow duration-300">
+                <div className="flex flex-col items-center text-center">
+                  <div className="w-24 h-24 mb-4 relative rounded-full overflow-hidden">
+                    <Image
+                      src={item.imgSrc}
+                      alt={item.name}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                  <p className="text-gray-600 italic mb-4">"{item.comment}"</p>
+                  <h3 className="text-lg font-semibold text-gray-800">
+                    {item.name}
+                  </h3>
+                  <p className="text-sm text-gray-500">{item.profession}</p>
+                  <div className="mt-3">{renderStars(item.rating)}</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </Slider>
+      </div>
+    </section>
+  );
+}
