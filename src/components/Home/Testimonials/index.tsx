@@ -7,7 +7,7 @@ import { Icon } from "@iconify/react";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 
-// You can later replace this with your real data import
+// Testimonial data
 const testimonialData = [
   {
     id: 1,
@@ -16,7 +16,7 @@ const testimonialData = [
     comment:
       "This platform helped me connect with mentors who guided me through placements. Great experience!",
     rating: 4.5,
-    imgSrc: "/images/users/user1.jpg",
+    imgSrc: "/images/testimonial/userone.png",
   },
   {
     id: 2,
@@ -25,7 +25,7 @@ const testimonialData = [
     comment:
       "I loved how interactive the courses were! I could easily follow along and ask doubts.",
     rating: 5,
-    imgSrc: "/images/users/user2.jpg",
+    imgSrc: "/images/testimonial/usertwo.png",
   },
   {
     id: 3,
@@ -34,7 +34,7 @@ const testimonialData = [
     comment:
       "The alumni sessions were insightful. Helped me prepare for interviews efficiently!",
     rating: 4,
-    imgSrc: "/images/users/user3.jpg",
+    imgSrc: "/images/testimonial/userthree.png",
   },
 ];
 
@@ -47,6 +47,7 @@ export default function Testimonial() {
     slidesToShow: 3,
     slidesToScroll: 1,
     arrows: false,
+    adaptiveHeight: false, // Important: ensures all slides have same height
     responsive: [
       {
         breakpoint: 1024,
@@ -59,13 +60,14 @@ export default function Testimonial() {
     ],
   };
 
+  // Function to render star ratings
   const renderStars = (rating: number) => {
     const full = Math.floor(rating);
     const half = rating % 1 >= 0.5 ? 1 : 0;
     const empty = 5 - full - half;
 
     return (
-      <div className="flex gap-1">
+      <div className="flex gap-1 justify-center">
         {[...Array(full)].map((_, i) => (
           <Icon
             key={`full-${i}`}
@@ -93,14 +95,14 @@ export default function Testimonial() {
   return (
     <section id="testimonials" className="py-20 bg-gray-50">
       <div className="container mx-auto max-w-7xl px-6">
-        <h2 className="text-3xl font-bold text-center text-gray-800 mb-10">
+        <h2 className="text-3xl font-semibold mb-5 md:mb-6 text-center text-gray-800 mb-10">
           What Students Say
         </h2>
 
         <Slider {...settings}>
           {testimonialData.map((item) => (
-            <div key={item.id} className="px-3">
-              <div className="bg-white rounded-2xl p-6 shadow-md hover:shadow-lg transition-shadow duration-300">
+            <div key={item.id} className="px-3 h-full">
+              <div className="bg-white rounded-2xl p-6 shadow-md hover:shadow-lg transition-shadow duration-300 h-full flex flex-col justify-between">
                 <div className="flex flex-col items-center text-center">
                   <div className="w-24 h-24 mb-4 relative rounded-full overflow-hidden">
                     <Image
@@ -110,7 +112,9 @@ export default function Testimonial() {
                       className="object-cover"
                     />
                   </div>
-                  <p className="text-gray-600 italic mb-4">"{item.comment}"</p>
+                  <p className="text-gray-600 italic mb-4 h-24 overflow-hidden">
+                    "{item.comment}"
+                  </p>
                   <h3 className="text-lg font-semibold text-gray-800">
                     {item.name}
                   </h3>

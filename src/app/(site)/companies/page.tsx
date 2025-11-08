@@ -13,9 +13,9 @@ type Company = {
 const toSlug = (name: string) => name.toLowerCase().replace(/\s+/g, "");
 
 const companies: Company[] = [
-  { name: "Walmart", logo: "/images/companies/walmart.svg", years: [2021, 2022, 2023] },
-  { name: "Google", logo: "/images/companies/google.svg", years: [2020, 2021, 2022, 2023] },
-  { name: "Amazon", logo: "/images/companies/amazon.svg", years: [2021, 2022, 2023] },
+  { name: "Deloitte", logo: "/images/companies/deloitte.svg", years: [2021, 2022, 2023] },
+  { name: "America Express", logo: "/images/companies/amex.svg", years: [2020, 2021, 2022, 2023] },
+  { name: "Lowes", logo: "/images/companies/lowes.svg", years: [2021, 2022, 2023] },
   { name: "Visa", logo: "/images/companies/visa.svg", years: [2020, 2021, 2023] },
   { name: "Athenahealth", logo: "/images/companies/athena.svg", years: [2022, 2023] },
 ];
