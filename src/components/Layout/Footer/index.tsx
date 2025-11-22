@@ -6,7 +6,7 @@ import { headerData } from "../Header/Navigation/menuData";
 
 const footer = () => {
   return (
-    <footer className="bg-deepSlate py-10">
+    <footer className="bg-white py-10">
       <div className="container mx-auto lg:max-w-screen-xl md:max-w-screen-md px-4">
         <div className="grid grid-cols-1 gap-y-10 gap-x-16 sm:grid-cols-2 lg:grid-cols-12 xl:gap-x-8">
           <div className='col-span-4 md:col-span-12 lg:col-span-4'>
