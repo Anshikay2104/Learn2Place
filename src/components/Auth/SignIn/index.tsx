@@ -1,47 +1,46 @@
 "use client";
-import { signIn } from "next-auth/react";
+
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 import toast from "react-hot-toast";
+import Logo from "@/components/Layout/Header/Logo";
 import SocialSignIn from "../SocialSignIn";
-import Logo from "@/components/Layout/Header/Logo"
 import Loader from "@/components/Common/Loader";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
 const Signin = () => {
   const router = useRouter();
+  const supabase = createClientComponentClient();
 
   const [loginData, setLoginData] = useState({
     email: "",
     password: "",
-    checkboxToggle: false,
   });
+
   const [loading, setLoading] = useState(false);
 
-  const loginUser = (e: any) => {
+  // ---------------------------
+  // LOGIN WITH EMAIL + PASSWORD
+  // ---------------------------
+  const loginUser = async (e: any) => {
     e.preventDefault();
-
     setLoading(true);
-    signIn("credentials", { ...loginData, redirect: false })
-      .then((callback) => {
-        if (callback?.error) {
-          toast.error(callback?.error);
-          console.log(callback?.error);
-          setLoading(false);
-          return;
-        }
 
-        if (callback?.ok && !callback?.error) {
-          toast.success("Login successful");
-          setLoading(false);
-          router.push("/");
-        }
-      })
-      .catch((err) => {
-        setLoading(false);
-        console.log(err.message);
-        toast.error(err.message);
-      });
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: loginData.email,
+      password: loginData.password,
+    });
+
+    if (error) {
+      toast.error(error.message);
+      setLoading(false);
+      return;
+    }
+
+    toast.success("Login successful");
+    setLoading(false);
+    router.push("/");
   };
 
   return (
@@ -50,6 +49,7 @@ const Signin = () => {
         <Logo />
       </div>
 
+      {/* GOOGLE SIGN IN BUTTON */}
       <SocialSignIn />
 
       <span className="z-1 relative my-8 block text-center before:content-[''] before:absolute before:h-px before:w-40% before:bg-black/15 before:left-0 before:top-3 after:content-[''] after:absolute after:h-px after:w-40% after:bg-black/15 after:top-3 after:right-0">
@@ -58,7 +58,7 @@ const Signin = () => {
         </span>
       </span>
 
-      <form onSubmit={(e) => e.preventDefault()}>
+      <form onSubmit={loginUser}>
         <div className="mb-[22px]">
           <input
             type="email"
@@ -66,9 +66,10 @@ const Signin = () => {
             onChange={(e) =>
               setLoginData({ ...loginData, email: e.target.value })
             }
-            className="w-full rounded-md border border-black/20 border-solid bg-transparent px-5 py-3 text-base text-dark outline-none transition placeholder:text-grey focus:border-primary focus-visible:shadow-none text-white dark:focus:border-primary"
+            className="w-full rounded-md border border-black/20 bg-transparent px-5 py-3 text-base text-dark placeholder:text-grey focus:border-primary text-white"
           />
         </div>
+
         <div className="mb-[22px]">
           <input
             type="password"
@@ -76,14 +77,14 @@ const Signin = () => {
             onChange={(e) =>
               setLoginData({ ...loginData, password: e.target.value })
             }
-            className="w-full rounded-md border border-black/20 border-solid bg-transparent px-5 py-3 text-base text-dark outline-none transition placeholder:text-grey focus:border-primary focus-visible:shadow-none text-white dark:focus:border-primary"
+            className="w-full rounded-md border border-black/20 bg-transparent px-5 py-3 text-base text-dark placeholder:text-grey focus:border-primary text-white"
           />
         </div>
+
         <div className="mb-9">
           <button
-            onClick={loginUser}
             type="submit"
-            className="bg-primary w-full py-3 rounded-lg text-18 font-medium border border-primary hover:text-primary hover:bg-transparent"
+            className="bg-primary w-full py-3 rounded-lg text-18 font-medium border border-primary hover:text-primary hover:bg-transparent flex items-center justify-center"
           >
             Sign In {loading && <Loader />}
           </button>
@@ -92,13 +93,14 @@ const Signin = () => {
 
       <Link
         href="/forgot-password"
-        className="mb-2 inline-block text-base text-dark hover:text-primary text-white dark:hover:text-primary"
+        className="mb-2 inline-block text-base text-white hover:text-primary"
       >
         Forgot Password?
       </Link>
+
       <p className="text-body-secondary text-white text-base">
         Not a member yet?{" "}
-        <Link href="/" className="text-primary hover:underline">
+        <Link href="/auth/signup" className="text-primary hover:underline">
           Sign Up
         </Link>
       </p>

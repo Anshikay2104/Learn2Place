@@ -1,4 +1,5 @@
 "use client";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
@@ -6,35 +7,42 @@ import SocialSignUp from "../SocialSignUp";
 import Logo from "@/components/Layout/Header/Logo";
 import { useState } from "react";
 import Loader from "@/components/Common/Loader";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+
 const SignUp = () => {
   const router = useRouter();
+  const supabase = createClientComponentClient();
+
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: any) => {
+  const handleSubmit = async (e: any) => {
     e.preventDefault();
-
     setLoading(true);
-    const data = new FormData(e.currentTarget);
-    const value = Object.fromEntries(data.entries());
-    const finalData = { ...value };
 
-    fetch("/api/register", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
+    const data = new FormData(e.currentTarget);
+    const form = Object.fromEntries(data.entries());
+
+    const { name, email, password }: any = form;
+
+    // ---- SUPABASE SIGNUP ----
+    const { data: signupData, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { name }, // store name in user_metadata
+        emailRedirectTo: "http://localhost:3000/auth/callback",
       },
-      body: JSON.stringify(finalData),
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        toast.success("Successfully registered");
-        setLoading(false);
-        router.push("/signin");
-      })
-      .catch((err) => {
-        toast.error(err.message);
-        setLoading(false);
-      });
+    });
+
+    if (error) {
+      toast.error(error.message);
+      setLoading(false);
+      return;
+    }
+
+    toast.success("Account created! Check your email for verification.");
+    setLoading(false);
+    router.push("/signin");
   };
 
   return (
@@ -58,31 +66,34 @@ const SignUp = () => {
             placeholder="Name"
             name="name"
             required
-            className="w-full rounded-md border border-black/20 border-solid bg-transparent px-5 py-3 text-base text-dark outline-none transition placeholder:text-grey focus:border-primary focus-visible:shadow-none text-white dark:focus:border-primary"
+            className="w-full rounded-md border border-black/20 bg-transparent px-5 py-3 text-base text-white placeholder:text-grey focus:border-primary"
           />
         </div>
+
         <div className="mb-[22px]">
           <input
             type="email"
             placeholder="Email"
             name="email"
             required
-            className="w-full rounded-md border border-black/20 border-solid bg-transparent px-5 py-3 text-base text-dark outline-none transition placeholder:text-grey focus:border-primary focus-visible:shadow-none text-white dark:focus:border-primary"
+            className="w-full rounded-md border border-black/20 bg-transparent px-5 py-3 text-base text-white placeholder:text-grey focus:border-primary"
           />
         </div>
+
         <div className="mb-[22px]">
           <input
             type="password"
             placeholder="Password"
             name="password"
             required
-            className="w-full rounded-md border border-black/20 border-solid bg-transparent px-5 py-3 text-base text-dark outline-none transition placeholder:text-grey focus:border-primary focus-visible:shadow-none text-white dark:focus:border-primary"
+            className="w-full rounded-md border border-black/20 bg-transparent px-5 py-3 text-base text-white placeholder:text-grey focus:border-primary"
           />
         </div>
+
         <div className="mb-9">
           <button
             type="submit"
-            className="flex w-full items-center text-18 font-medium justify-center rounded-md bg-primary px-5 py-3 text-darkmode transition duration-300 ease-in-out hover:bg-transparent hover:text-primary border-primary border "
+            className="flex w-full items-center text-18 font-medium justify-center rounded-md bg-primary px-5 py-3 border border-primary hover:bg-transparent hover:text-primary"
           >
             Sign Up {loading && <Loader />}
           </button>
@@ -90,7 +101,7 @@ const SignUp = () => {
       </form>
 
       <p className="text-body-secondary mb-4 text-white text-base">
-        By creating an account you are agree with our{" "}
+        By creating an account you agree to our{" "}
         <a href="/#" className="text-primary hover:underline">
           Privacy
         </a>{" "}
@@ -100,9 +111,9 @@ const SignUp = () => {
         </a>
       </p>
 
-      <p className="text-body-secondary text-white text-base">
+      <p className="text-white text-base">
         Already have an account?
-        <Link href="/" className="pl-2 text-primary hover:underline">
+        <Link href="/signin" className="pl-2 text-primary hover:underline">
           Sign In
         </Link>
       </p>
