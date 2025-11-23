@@ -13,21 +13,20 @@ type Profile = {
 };
 
 type ExperienceRow = {
-  id: number;
+  id: string; // UUID
   hiring_role: string | null;
   process_overview: string | null;
   tips?: string | null;
   created_at: string;
-  profiles: Profile[] | null;
+  profiles: Profile | null;
 };
 
 type Props = { params: { company: string; year: string } };
 
 export default async function ExperiencePage({ params }: Props) {
-  
   const { company, year } = params;
 
-  const { data: experiences } = await supabase
+  const { data: experiences, error } = await supabase
     .from("company_experiences")
     .select(`
       id,
@@ -35,14 +34,18 @@ export default async function ExperiencePage({ params }: Props) {
       process_overview,
       tips,
       created_at,
-      profiles (
+      profiles:profiles!company_experiences_user_id_fkey (
         full_name,
         avatar_url
       )
     `)
     .eq("company_id", company)
-    .eq("year", year)
+    .eq("year", Number(year))     // FIXED
     .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error(error);
+  }
 
   const experiencesList = experiences as ExperienceRow[] | null;
 
@@ -52,36 +55,50 @@ export default async function ExperiencePage({ params }: Props) {
         Interview Experiences – {year}
       </h1>
 
-      {experiencesList?.map((exp) => (
-        <div
-          key={exp.id}
-          className="border rounded-xl p-6 mb-6 shadow-sm bg-white"
-        >
-          <div className="flex items-center gap-4 mb-4">
-            <img
-              src={exp.profiles?.[0]?.avatar_url || "/default-avatar.png"}
-              className="w-14 h-14 rounded-full border object-cover"
-              alt={exp.profiles?.[0]?.full_name || "Avatar"}
-            />
-            <div>
-              <h2 className="text-xl font-semibold">
-                {exp.profiles?.[0]?.full_name || "Anonymous"}
-              </h2>
-              <p className="text-gray-600">{exp.hiring_role}</p>
-            </div>
-          </div>
+      {experiencesList?.map((exp, index) => {
+  const isEven = index % 2 === 0;
 
-          <p className="text-gray-800 leading-7 whitespace-pre-wrap">
-            {exp.process_overview}
-          </p>
+  return (
+    <div
+      key={exp.id}
+      className={`
+        p-8 rounded-2xl shadow-md border
+        mb-10 transition-all hover:shadow-xl
+        ${isEven ? "bg-[#F3F5FF] border-indigo-200" : "bg-[#EEF9FF] border-blue-200"}
+      `}
+    >
+      {/* Header */}
+      <div className="flex items-center gap-5 mb-6">
+        <img
+          src={exp.profiles?.avatar_url || "/default-avatar.png"}
+          className="w-16 h-16 rounded-full border-2 border-white shadow-md object-cover"
+          alt={exp.profiles?.full_name || "Avatar"}
+        />
 
-          {exp.tips && (
-            <div className="mt-4 p-4 bg-blue-50 border-l-4 border-blue-500 rounded text-sm">
-              <strong>Tips:</strong> {exp.tips}
-            </div>
-          )}
+        <div>
+          <h2 className="text-2xl font-semibold text-[#1A1A1A]">
+            {exp.profiles?.full_name || "Anonymous"}
+          </h2>
+          <p className="text-gray-600 text-lg">{exp.hiring_role}</p>
         </div>
-      ))}
+      </div>
+
+      {/* Experience text */}
+      <p className="text-gray-800 text-lg leading-8 whitespace-pre-wrap pl-1">
+        {exp.process_overview}
+      </p>
+
+      {/* Tips box */}
+      {exp.tips && (
+        <div className="mt-6 p-5 bg-white rounded-xl border-l-4 border-indigo-600 shadow-sm">
+          <strong className="text-indigo-700">Tips:</strong>{" "}
+          <span className="text-gray-700">{exp.tips}</span>
+        </div>
+      )}
+    </div>
+  );
+})}
+
     </div>
   );
 }
