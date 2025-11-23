@@ -1,77 +1,87 @@
-import React from "react";
-import { ExperienceCards } from "@/components/ExperienceCards";
+import { createClient } from "@supabase/supabase-js";
 
-interface PageProps {
-  params: { company: string; year: string };
-}
+export const dynamic = "force-dynamic";
 
-interface Experience {
-  person: string;
-  photo: string;
-  companyLogo: string;
-  description: string;
-}
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
-// Sample experiences
-const sampleExperiences: Record<string, Experience[]> = {
-  walmart: [
-    {
-      person: "John Doe",
-      photo: "/images/person1.jpg",
-      companyLogo: "/images/companies/walmart.svg",
-      description:
-        "Managed inventory optimization projects and collaborated with cross-functional teams on logistics improvements. Increased efficiency in supply chain operations by 15% over 6 months.",
-    },
-    {
-      person: "Jane Smith",
-      photo: "/images/person2.jpg",
-      companyLogo: "/images/companies/walmart.svg",
-      description:
-        "Worked on customer analytics and data-driven marketing strategies, leading to a 10% increase in engagement across online channels.",
-    },
-  ],
-  google: [
-    {
-      person: "Alice Johnson",
-      photo: "/images/person3.jpg",
-      companyLogo: "/images/companies/google.svg",
-      description:
-        "Developed scalable backend systems and contributed to AI research projects. Optimized internal tools for data visualization.",
-    },
-  ],
-  amazon: [
-    {
-      person: "Boyce Lee",
-      photo: "/images/person4.jpg",
-      companyLogo: "/images/companies/amazon.svg",
-      description:
-        "Worked on e-commerce analytics dashboards and logistics algorithms. Participated in cross-functional project sprints for new delivery models.",
-    },
-  ],
+type Profile = {
+  full_name: string | null;
+  avatar_url?: string | null;
 };
 
-export async function generateStaticParams() {
-  const companies = ["walmart", "google", "amazon"];
-  const years = ["2020", "2021", "2022", "2023"];
-  return companies.flatMap((company) => years.map((year) => ({ company, year })));
-}
+type ExperienceRow = {
+  id: number;
+  hiring_role: string | null;
+  process_overview: string | null;
+  tips?: string | null;
+  created_at: string;
+  profiles: Profile[] | null;
+};
 
-export default function CompanyYearPage({ params }: PageProps) {
+type Props = { params: { company: string; year: string } };
+
+export default async function ExperiencePage({ params }: Props) {
+  
   const { company, year } = params;
-  const experiences = sampleExperiences[company] || [];
+
+  const { data: experiences } = await supabase
+    .from("company_experiences")
+    .select(`
+      id,
+      hiring_role,
+      process_overview,
+      tips,
+      created_at,
+      profiles (
+        full_name,
+        avatar_url
+      )
+    `)
+    .eq("company_id", company)
+    .eq("year", year)
+    .order("created_at", { ascending: false });
+
+  const experiencesList = experiences as ExperienceRow[] | null;
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-32 px-6 md:px-20">
-      {/* Added pt-32 to avoid overlapping with navbar */}
-      <h1 className="text-3xl font-bold mb-6 capitalize text-center">
-        {company} - {year}
+    <div className="max-w-3xl mx-auto py-10 px-4">
+      <h1 className="text-3xl font-bold mb-6">
+        Interview Experiences – {year}
       </h1>
 
-      {experiences.length > 0 ? (
-        <ExperienceCards experiences={experiences} />
-      ) : (
-        <p className="text-gray-600 text-center">No experiences available for this company and year.</p>
-      )}
+      {experiencesList?.map((exp) => (
+        <div
+          key={exp.id}
+          className="border rounded-xl p-6 mb-6 shadow-sm bg-white"
+        >
+          <div className="flex items-center gap-4 mb-4">
+            <img
+              src={exp.profiles?.[0]?.avatar_url || "/default-avatar.png"}
+              className="w-14 h-14 rounded-full border object-cover"
+              alt={exp.profiles?.[0]?.full_name || "Avatar"}
+            />
+            <div>
+              <h2 className="text-xl font-semibold">
+                {exp.profiles?.[0]?.full_name || "Anonymous"}
+              </h2>
+              <p className="text-gray-600">{exp.hiring_role}</p>
+            </div>
+          </div>
+
+          <p className="text-gray-800 leading-7 whitespace-pre-wrap">
+            {exp.process_overview}
+          </p>
+
+          {exp.tips && (
+            <div className="mt-4 p-4 bg-blue-50 border-l-4 border-blue-500 rounded text-sm">
+              <strong>Tips:</strong> {exp.tips}
+            </div>
+          )}
+        </div>
+      ))}
     </div>
   );
 }
