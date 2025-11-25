@@ -11,6 +11,8 @@ const Hero = () => {
     const supabase = createClientComponentClient();
 
     const [isAlumni, setIsAlumni] = useState(false);
+    const [profileData, setProfileData] = useState<any>(null);
+    const [profileError, setProfileError] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -24,16 +26,53 @@ const Hero = () => {
                 return;
             }
 
-            const { data: profile } = await supabase
+            // Try to fetch an existing profile. Use maybeSingle so we don't
+            // get an error when there are 0 rows.
+            const { data: profile, error } = await supabase
                 .from("profiles")
                 .select("role, is_verified_alumni")
                 .eq("id", user.id)
-                .single();
+                .maybeSingle();
 
-            setIsAlumni(
-                profile?.role === "alumni" &&
-                    profile?.is_verified_alumni === true
-            );
+            // Debug logs to help trace why the conditional UI might not appear
+            // (remove or change to a proper logger in production)
+            // eslint-disable-next-line no-console
+            console.debug("Hero loadProfile user:", user);
+            // eslint-disable-next-line no-console
+            console.debug("Hero loadProfile profile:", profile, "error:", error);
+
+            // Store profile and error for visible debug in UI
+            setProfileData(profile ?? null);
+            setProfileError(error ?? null);
+
+            // If no profile exists, try to create one from the auth user's
+            // metadata (signup sets `options.data` with name & role).
+            if (!profile) {
+                const authRole = (user.user_metadata && (user.user_metadata.role || user.user_metadata?.role)) || null;
+
+                if (authRole) {
+                    // attempt to create a profile row so the rest of the app
+                    // (and the alumni check) can work immediately after signup
+                    const { data: inserted, error: insertErr } = await supabase
+                        .from("profiles")
+                        .insert({ id: user.id, role: authRole })
+                        .select()
+                        .maybeSingle();
+
+                    // Save whatever we got back
+                    setProfileData(inserted ?? null);
+                    setProfileError(insertErr ?? null);
+
+                    // Show button if the inserted role is alumni
+                    setIsAlumni(inserted?.role === "alumni");
+                } else {
+                    // No profile and no role in metadata — default to not showing
+                    setIsAlumni(false);
+                }
+            } else {
+                // Profile exists — show button when role is alumni
+                setIsAlumni(profile.role === "alumni");
+            }
 
             setLoading(false);
         };
@@ -96,6 +135,17 @@ const Hero = () => {
                                         className="text-white text-4xl inline-block"
                                     />
                                 </button>
+                            </div>
+                        )}
+
+                        {/* Debug panel (visible) - shows fetched profile & errors for debugging */}
+                        {!loading && (profileData || profileError) && (
+                            <div className="mt-4 p-4 bg-white/80 dark:bg-black/60 rounded border text-sm text-black/80">
+                                <p className="font-semibold mb-1">Debug: profile data</p>
+                                <pre className="whitespace-pre-wrap text-xs mb-2">{JSON.stringify(profileData, null, 2)}</pre>
+                                {profileError && (
+                                    <p className="text-red-600 text-xs">Error: {JSON.stringify(profileError)}</p>
+                                )}
                             </div>
                         )}
 

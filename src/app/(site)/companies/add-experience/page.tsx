@@ -21,12 +21,12 @@ export default async function AddExperiencePage() {
     );
   }
 
-  // Fetch profile
+  // Fetch profile (use maybeSingle to avoid error when profile row does not exist)
   const { data: profile } = await supabase
     .from("profiles")
     .select("role, is_verified_alumni")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
 
   if (!(profile?.role === "alumni" && profile?.is_verified_alumni)) {
     return (
