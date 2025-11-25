@@ -21,7 +21,6 @@ export default function AddExperienceForm({ userId }: AddExperienceFormProps) {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // NEW STATES
   const [resourceLinks, setResourceLinks] = useState<string[]>([""]);
   const [resourceFiles, setResourceFiles] = useState<File[]>([]);
   const [selectedCompany, setSelectedCompany] = useState("");
@@ -35,12 +34,17 @@ export default function AddExperienceForm({ userId }: AddExperienceFormProps) {
     fetchCompanies();
   }, []);
 
+  // Generate slug from name
   const generateSlug = (name: string) =>
     name
       .toLowerCase()
       .trim()
       .replace(/\s+/g, "-")
       .replace(/[^a-z0-9-]/g, "");
+
+  // Guess domain from company name
+  const guessDomain = (name: string) =>
+    name.toLowerCase().replace(/[^a-z0-9]/g, "") + ".com";
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -56,13 +60,23 @@ export default function AddExperienceForm({ userId }: AddExperienceFormProps) {
       const newName = form.get("new_company_name") as string;
       const slug = generateSlug(newName);
 
+      // Auto-generate expected domain
+      const domain = guessDomain(newName);
+
+      // Auto-generate logo using Clearbit
+      const logoUrl = `https://logo.clearbit.com/${domain}`;
+
       const { error: compErr } = await supabase.from("companies").insert({
-        name: newName,
+        id: slug,              // important: id = slug
         slug,
+        name: newName,
+        website: `https://${domain}`,
+        logo_url: logoUrl,     // automatically assigned
         created_by: userId,
       });
 
       if (compErr) {
+        console.error(compErr);
         alert("Error creating new company");
         setLoading(false);
         return;
@@ -77,7 +91,7 @@ export default function AddExperienceForm({ userId }: AddExperienceFormProps) {
     const { data: experience, error: expErr } = await supabase
       .from("company_experiences")
       .insert({
-        company_id: companySlug, // ← slug (NOT uuid)
+        company_id: companySlug,
         user_id: userId,
         year: Number(form.get("year")),
         hiring_role: form.get("hiring_role"),
@@ -234,7 +248,7 @@ export default function AddExperienceForm({ userId }: AddExperienceFormProps) {
         />
       </div>
 
-      {/* Resource Subject */}
+      {/* Resource Category */}
       <div>
         <label className="block font-medium mb-2">Resource Category</label>
         <select name="subject_id" required className="w-full border px-4 py-3 rounded-xl">
