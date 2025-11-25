@@ -84,13 +84,11 @@ const SignUp = () => {
     const form = Object.fromEntries(new FormData(e.currentTarget).entries());
     const { name, email, password }: any = form;
 
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-            options: {
-        data: { name, role },
-        emailRedirectTo: `${location.origin}/auth/callback`,
-            },
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
     });
 
     if (error) {
