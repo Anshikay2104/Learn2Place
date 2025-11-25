@@ -1,78 +1,69 @@
 "use client";
 
-import React from "react";
-import { useRouter } from "next/navigation";
-import Image from "next/image";
+import Link from "next/link";
 
-interface ResourceCategory {
-  name: string;
-  icon: string;
-  description: string;
-}
-
-const categories: ResourceCategory[] = [
+const SUBJECTS = [
   {
-    name: "Data Structures & Algorithms",
-    icon: "/images/resources/dsa.jpg",
-    description: "Master DSA concepts, patterns, and interview problems.",
+    id: "dsa",
+    title: "Data Structures & Algorithms",
+    desc: "Master DSA concepts, patterns, and interview problems.",
+    img: "/images/resources/dsa.jpg",
   },
   {
-    name: "Computer Networks",
-    icon: "/images/resources/network.jpg",
-    description: "Understand networking protocols, OSI model, and real-world communication.",
+    id: "cn",
+    title: "Computer Networks",
+    desc: "Understand networking protocols, OSI model, and real-world communication.",
+    img: "/images/resources/network.jpg",
   },
   {
-    name: "Operating Systems",
-    icon: "/images/resources/os.jpg",
-    description: "Learn process management, memory, scheduling, and system architecture.",
+    id: "os",
+    title: "Operating Systems",
+    desc: "Learn process management, memory scheduling, and system architecture.",
+    img: "/images/resources/os.jpg",
   },
   {
-    name: "Object Oriented Programming (OOPs)",
-    icon: "/images/resources/oops.jpg",
-    description: "Grasp key principles — inheritance, polymorphism, encapsulation, abstraction.",
+    id: "oops",
+    title: "Object Oriented Programming (OOPs)",
+    desc: "Grasp pillars of OOP — inheritance, polymorphism, encapsulation.",
+    img: "/images/resources/oops.jpg",
+  },
+  {
+    id: "dbms",
+    title: "Database Management Systems (DBMS)",
+    desc: "Normalization, ACID properties, indexing, SQL queries.",
+    img: "/images/resources/dbms.jpg",
+  },
+  {
+    id: "sd",
+    title: "System Design",
+    desc: "Design scalable systems, databases, and architecture patterns.",
+    img: "/images/resources/sys.jpg",
   },
 ];
 
-const ResourcesPage: React.FC = () => {
-  const router = useRouter();
-
-  const handleNavigate = (topic: string) => {
-    const slug = topic.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-    router.push(`/resources/${slug}`);
-  };
-
+export default function ResourcesPage() {
   return (
-    <main className="min-h-screen bg-gradient-to-br from-blue-50 to-gray-100 py-12 px-6 md:px-20">
-      <h1 className="text-4xl font-bold text-center mb-12 text-gray-800">
-        Explore Learning Resources
-      </h1>
+    <div className="px-6 py-10 lg:px-24">
+      <h1 className="text-4xl font-bold mb-10 text-center">Learning Resources</h1>
 
-      <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-        {categories.map((cat) => (
-          <div
-            key={cat.name}
-            onClick={() => handleNavigate(cat.name)}
-            className="cursor-pointer bg-white rounded-2xl shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 p-6 border border-gray-200 flex flex-col items-center text-center"
-          >
-            {/* Image fills the card width */}
-            <div className="relative w-full h-40 mb-4 rounded-lg overflow-hidden">
-              <Image
-                src={cat.icon}
-                alt={cat.name}
-                fill
-                className="object-cover"
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-10">
+        {SUBJECTS.map((sub) => (
+          <Link key={sub.id} href={`/resources/${sub.id}`}>
+            <div className="bg-white rounded-2xl shadow-md hover:shadow-xl transition cursor-pointer border">
+              <img
+                src={sub.img}
+                alt={sub.title}
+                className="w-full h-48 object-cover rounded-t-2xl"
               />
-            </div>
 
-            <h2 className="text-xl font-semibold text-gray-800 mb-2">
-              {cat.name}
-            </h2>
-            <p className="text-sm text-gray-600">{cat.description}</p>
-          </div>
+              <div className="p-5">
+                <h2 className="text-xl font-semibold mb-2">{sub.title}</h2>
+                <p className="text-gray-600 text-sm">{sub.desc}</p>
+              </div>
+            </div>
+          </Link>
         ))}
       </div>
-    </main>
+    </div>
   );
-};
-
-export default ResourcesPage;
+}

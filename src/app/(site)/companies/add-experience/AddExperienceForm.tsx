@@ -11,6 +11,7 @@ type AddExperienceFormProps = {
 type Company = {
   id: string;
   name: string;
+  slug: string;
 };
 
 export default function AddExperienceForm({ userId }: AddExperienceFormProps) {
@@ -20,36 +21,133 @@ export default function AddExperienceForm({ userId }: AddExperienceFormProps) {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(false);
 
+  // NEW STATES
+  const [resourceLinks, setResourceLinks] = useState<string[]>([""]);
+  const [resourceFiles, setResourceFiles] = useState<File[]>([]);
+  const [selectedCompany, setSelectedCompany] = useState("");
+  const [showOther, setShowOther] = useState(false);
+
   useEffect(() => {
     const fetchCompanies = async () => {
-      const { data } = await supabase.from("companies").select("id, name");
+      const { data } = await supabase.from("companies").select("id, name, slug");
       setCompanies((data as Company[]) || []);
     };
     fetchCompanies();
   }, []);
+
+  const generateSlug = (name: string) =>
+    name
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9-]/g, "");
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
 
     const form = new FormData(e.target as HTMLFormElement);
+    let companySlug = form.get("company_select") as string;
 
-    const { error } = await supabase.from("company_experiences").insert({
-      company_id: form.get("company_id"),
-      user_id: userId,
-      year: Number(form.get("year")),
-      hiring_role: form.get("hiring_role"),
-      process_overview: form.get("process_overview"),
-      tips: form.get("tips"),
-    });
+    /** ------------------------------------------
+     *  1️⃣ IF "OTHER" → CREATE A NEW COMPANY FIRST
+     * ------------------------------------------ */
+    if (companySlug === "other") {
+      const newName = form.get("new_company_name") as string;
+      const slug = generateSlug(newName);
+
+      const { error: compErr } = await supabase.from("companies").insert({
+        name: newName,
+        slug,
+        created_by: userId,
+      });
+
+      if (compErr) {
+        alert("Error creating new company");
+        setLoading(false);
+        return;
+      }
+
+      companySlug = slug; // use new slug
+    }
+
+    /** ------------------------------------------
+     *  2️⃣ INSERT EXPERIENCE WITH companySlug
+     * ------------------------------------------ */
+    const { data: experience, error: expErr } = await supabase
+      .from("company_experiences")
+      .insert({
+        company_id: companySlug, // ← slug (NOT uuid)
+        user_id: userId,
+        year: Number(form.get("year")),
+        hiring_role: form.get("hiring_role"),
+        process_overview: form.get("process_overview"),
+        tips: form.get("tips"),
+      })
+      .select()
+      .single();
+
+    if (expErr) {
+      alert("Error submitting experience");
+      setLoading(false);
+      return;
+    }
+
+    const experienceId = experience.id;
+
+    /** ------------------------------------------
+     *  3️⃣ UPLOAD FILE RESOURCES
+     * ------------------------------------------ */
+    for (const file of resourceFiles) {
+      const filePath = `${experienceId}/${Date.now()}-${file.name}`;
+
+      const { error: uploadErr } = await supabase.storage
+        .from("experience-resources")
+        .upload(filePath, file);
+
+      if (uploadErr) {
+        console.error(uploadErr);
+        continue;
+      }
+
+      const publicUrl = supabase.storage
+        .from("experience-resources")
+        .getPublicUrl(filePath).data.publicUrl;
+
+      await supabase.from("resources").insert({
+        user_id: userId,
+        subject_id: form.get("subject_id"),
+        title: file.name,
+        resource_type: "file",
+        file_path: publicUrl,
+        url: null,
+        experience_id: experienceId,
+      });
+    }
+
+    /** ------------------------------------------
+     *  4️⃣ INSERT LINK RESOURCES
+     * ------------------------------------------ */
+    for (const link of resourceLinks) {
+      if (!link.trim()) continue;
+
+      await supabase.from("resources").insert({
+        user_id: userId,
+        subject_id: form.get("subject_id"),
+        title: "Reference Link",
+        resource_type: "link",
+        url: link,
+        file_path: null,
+        experience_id: experienceId,
+      });
+    }
 
     setLoading(false);
 
-    if (!error) {
-      router.push(`/companies/${form.get("company_id")}/${form.get("year")}`);
-    } else {
-      alert("Error submitting experience");
-    }
+    /** ------------------------------------------
+     *  5️⃣ REDIRECT TO EXPERIENCE PAGE
+     * ------------------------------------------ */
+    router.push(`/companies/${companySlug}/${form.get("year")}`);
   };
 
   return (
@@ -60,14 +158,36 @@ export default function AddExperienceForm({ userId }: AddExperienceFormProps) {
       {/* Company */}
       <div>
         <label className="block font-medium mb-2">Company</label>
-        <select name="company_id" required className="w-full border px-4 py-3 rounded-xl">
+
+        <select
+          name="company_select"
+          required
+          className="w-full border px-4 py-3 rounded-xl"
+          onChange={(e) => {
+            setSelectedCompany(e.target.value);
+            setShowOther(e.target.value === "other");
+          }}
+        >
           <option value="">Select a company</option>
+
           {companies.map((c) => (
-            <option key={c.id} value={c.id}>
+            <option key={c.slug} value={c.slug}>
               {c.name}
             </option>
           ))}
+
+          <option value="other">Other (Add new)</option>
         </select>
+
+        {showOther && (
+          <input
+            type="text"
+            name="new_company_name"
+            placeholder="Enter company name"
+            className="w-full border px-4 py-3 rounded-xl mt-3"
+            required
+          />
+        )}
       </div>
 
       {/* Year */}
@@ -77,7 +197,7 @@ export default function AddExperienceForm({ userId }: AddExperienceFormProps) {
           type="number"
           name="year"
           required
-          placeholder="2023"
+          placeholder="2024"
           className="w-full border px-4 py-3 rounded-xl"
         />
       </div>
@@ -107,7 +227,63 @@ export default function AddExperienceForm({ userId }: AddExperienceFormProps) {
       {/* Tips */}
       <div>
         <label className="block font-medium mb-2">Tips (optional)</label>
-        <textarea name="tips" rows={3} className="w-full border px-4 py-3 rounded-xl" />
+        <textarea
+          name="tips"
+          rows={3}
+          className="w-full border px-4 py-3 rounded-xl"
+        />
+      </div>
+
+      {/* Resource Subject */}
+      <div>
+        <label className="block font-medium mb-2">Resource Category</label>
+        <select name="subject_id" required className="w-full border px-4 py-3 rounded-xl">
+          <option value="">Select category</option>
+          <option value="dsa">Data Structures & Algorithms</option>
+          <option value="cn">Computer Networks</option>
+          <option value="os">Operating Systems</option>
+          <option value="oops">OOPs</option>
+          <option value="dbms">DBMS</option>
+          <option value="sd">System Design</option>
+        </select>
+      </div>
+
+      {/* Resource Links */}
+      <div>
+        <label className="block font-medium mb-2">Resource Links</label>
+        {resourceLinks.map((link, idx) => (
+          <input
+            key={idx}
+            type="text"
+            value={link}
+            placeholder="https://example.com"
+            onChange={(e) => {
+              const updated = [...resourceLinks];
+              updated[idx] = e.target.value;
+              setResourceLinks(updated);
+            }}
+            className="w-full border px-4 py-3 rounded-xl mb-2"
+          />
+        ))}
+
+        <button
+          type="button"
+          className="text-indigo-600 underline"
+          onClick={() => setResourceLinks([...resourceLinks, ""])}
+        >
+          + Add another link
+        </button>
+      </div>
+
+      {/* Resource Files */}
+      <div>
+        <label className="block font-medium mb-2">Upload Resource Files</label>
+        <input
+          type="file"
+          multiple
+          onChange={(e) => setResourceFiles(Array.from(e.target.files || []))}
+          className="w-full border px-4 py-3 rounded-xl"
+        />
       </div>
 
       {/* Submit */}
