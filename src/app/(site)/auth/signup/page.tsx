@@ -71,25 +71,33 @@ const SignUp = () => {
   };
 
   /* ------------------------- FINAL SIGNUP ------------------------- */
-  const handleSubmit = async (e: any) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setLoading(true);
+  setLoading(true);
 
-    if (role === "alumni" && !alumniVerified) {
-      toast.error("Please verify your alumni email first.");
-      setLoading(false);
-      return;
-    }
+  if (role === "alumni" && !alumniVerified) {
+    toast.error("Please verify your alumni email first.");
+    setLoading(false);
+    return;
+  }
 
-    const form = Object.fromEntries(new FormData(e.currentTarget).entries());
-    const { name, email, password }: any = form;
+  const formData = new FormData(e.currentTarget);
+  const name = formData.get("name") as string;
+  const email = formData.get("email") as string;
+  const password = formData.get("password") as string;
 
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+  // SIGNUP USING EMAIL+PASSWORD
+  const { data, error } = await supabase.auth.signUp({
+    email: email as string,
+    password: password as string,
+    options: {
+      data: {
+        full_name: name,
+        role: role || "student",
       },
-    });
+      emailRedirectTo: `${window.location.origin}/auth/callback`,
+    },
+  });
 
     if (error) {
       toast.error(error.message);
@@ -100,6 +108,7 @@ const SignUp = () => {
     toast.success("Account created! Check your email.");
     router.push("/signin");
   };
+
 
   return (
     <div
