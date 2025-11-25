@@ -24,16 +24,19 @@ const Hero = () => {
                 return;
             }
 
-            const { data: profile } = await supabase
+            // SAFE PROFILE FETCH — NO 406 ERROR
+            const { data, error } = await supabase
                 .from("profiles")
                 .select("role, is_verified_alumni")
                 .eq("id", user.id)
-                .single();
+                .maybeSingle(); // replaces .single(), prevents 406
 
-            setIsAlumni(
-                profile?.role === "alumni" &&
-                    profile?.is_verified_alumni === true
-            );
+            if (!error && data) {
+                setIsAlumni(
+                    data.role === "alumni" &&
+                    data.is_verified_alumni === true
+                );
+            }
 
             setLoading(false);
         };
@@ -102,7 +105,7 @@ const Hero = () => {
                         {/* BOTTOM FEATURES */}
                         <div className="flex items-center justify-between pt-10 lg:pt-4">
                             <div className="flex gap-2">
-                                    <Image src={`${getImagePrefix()}images/banner/check-circle.svg`} width={30} height={30} alt="check icon" />
+                                <Image src={`${getImagePrefix()}images/banner/check-circle.svg`} width={30} height={30} alt="check icon" />
                                 <p className="text-sm sm:text-lg text-black">Flexible</p>
                             </div>
                             <div className="flex gap-2">

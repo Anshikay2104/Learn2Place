@@ -1,6 +1,7 @@
 "use client";
+import React from "react";
 
-interface AlumniEmailModalProps {
+interface Props {
   email: string;
   setEmail: (email: string) => void;
   onVerify: () => void;
@@ -9,60 +10,54 @@ interface AlumniEmailModalProps {
   loading: boolean;
 }
 
-export default function AlumniEmailModal({
+const AlumniEmailModal = ({
   email,
   setEmail,
   onVerify,
   onClose,
   error,
   loading,
-}: AlumniEmailModalProps) {
+}: Props) => {
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-[300]">
+    <div className="fixed inset-0 z-[9999] bg-black/50 flex items-center justify-center backdrop-blur-sm">
+      <div className="bg-white p-8 w-full max-w-md rounded-2xl shadow-xl relative animate-fadeIn">
 
-      {/* MAIN MODAL */}
-      <div className="bg-white w-[460px] rounded-3xl p-10 shadow-2xl text-center transform scale-105">
+        {/* Close Button */}
+        <button
+          onClick={onClose}
+          className="absolute right-4 top-4 text-gray-700 hover:text-black text-2xl"
+        >
+          &times;
+        </button>
 
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">
+        <h2 className="text-2xl font-semibold text-center text-black mb-4">
           Verify Alumni Email
         </h2>
 
-        <p className="text-gray-600 mb-6">
-          Enter your registered alumni email to continue.
+        <p className="text-gray-600 text-center mb-6">
+          Please enter your registered alumni email to continue.
         </p>
 
-        {/* EMAIL INPUT */}
         <input
           type="email"
           placeholder="Enter alumni email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full border border-gray-300 px-4 py-3 rounded-lg mb-3 focus:outline-none focus:ring-2 focus:ring-[#6C63FF]"
+          className="w-full border rounded-lg px-4 py-3 text-black mb-2 focus:outline-none"
         />
 
-        {/* ERROR */}
-        {error && (
-          <p className="text-red-600 text-sm mb-3">{error}</p>
-        )}
+        {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
 
-        {/* VERIFY BUTTON */}
         <button
           onClick={onVerify}
           disabled={loading}
-          className="w-full bg-[#6C63FF] text-white py-3 rounded-xl text-lg font-semibold hover:bg-[#5850d4] disabled:opacity-50 transition mb-4"
+          className="w-full bg-primary text-white py-3 rounded-lg hover:bg-primary/90"
         >
           {loading ? "Verifying..." : "Verify Email"}
         </button>
-
-        {/* CLOSE BUTTON */}
-        <button
-          onClick={onClose}
-          className="w-full py-3 rounded-xl border border-gray-400 text-gray-700 font-medium hover:bg-gray-100 transition"
-        >
-          Cancel
-        </button>
-
       </div>
     </div>
   );
-}
+};
+
+export default AlumniEmailModal;

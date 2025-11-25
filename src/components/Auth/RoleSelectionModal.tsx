@@ -1,42 +1,60 @@
 "use client";
-
+import React, { useEffect } from "react";
 import Logo from "@/components/Layout/Header/Logo";
 
-interface RoleSelectionModalProps {
-  onSelect: (role: "alumni" | "student") => void;
+interface Props {
+  onSelect: (role: "student" | "alumni") => void;
+  onClose: () => void;
 }
 
-export default function RoleSelectionModal({ onSelect }: RoleSelectionModalProps) {
+const RoleSelectionModal = ({ onSelect, onClose }: Props) => {
+
+  // Prevent background scrolling while modal is open
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "auto";
+    };
+  }, []);
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-[200]">
+    <div
+      className="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm flex items-center justify-center"
+    >
+      <div className="bg-white rounded-2xl shadow-xl p-10 w-full max-w-md relative animate-fadeIn">
 
-      <div className="bg-white w-[460px] rounded-3xl p-10 shadow-2xl text-center transform scale-105">
+        {/* Close Button */}
+        <button
+          className="absolute right-4 top-4 text-gray-600 hover:text-black text-2xl"
+          onClick={onClose}
+        >
+          &times;
+        </button>
 
-        {/* LOGO */}
-        <div className="mx-auto mb-6 w-[180px]">
+        <div className="flex justify-center mb-6">
           <Logo />
         </div>
 
-        <h2 className="text-3xl font-bold text-gray-900 mb-6">
+        <h2 className="text-2xl font-semibold text-center mb-8 text-black">
           Select Your Role
         </h2>
 
-        <div className="flex flex-col gap-5">
-          <button
-            onClick={() => onSelect("student")}
-            className="w-full py-3 rounded-xl bg-[#6C63FF] text-white text-lg font-semibold hover:bg-[#5850d4] transition"
-          >
-            I am a Student
-          </button>
+        <button
+          onClick={() => onSelect("student")}
+          className="w-full bg-primary text-white py-4 rounded-xl text-lg font-semibold mb-4 hover:bg-primary/90"
+        >
+          I am a Student
+        </button>
 
-          <button
-            onClick={() => onSelect("alumni")}
-            className="w-full py-3 rounded-xl border border-gray-300 text-lg font-semibold text-gray-800 hover:bg-gray-100 transition"
-          >
-            I am an Alumni
-          </button>
-        </div>
+        <button
+          onClick={() => onSelect("alumni")}
+          className="w-full border border-primary text-primary py-4 rounded-xl text-lg font-semibold hover:bg-primary hover:text-white transition"
+        >
+          I am an Alumni
+        </button>
       </div>
     </div>
   );
-}
+};
+
+export default RoleSelectionModal;
