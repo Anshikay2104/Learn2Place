@@ -1,8 +1,12 @@
-import { Configuration } from "./Configuration"
+// import { Configuration } from "./Configuration"
 import { DocNavigation } from "./DocNavigation"
-import { Introduction } from "./Introduction"
-import { PackageStructure } from "./PackageStructure"
-import { QuickStart } from "./QuickStart"
+// import { Introduction } from "./Introduction"
+// import { PackageStructure } from "./PackageStructure"
+// import { QuickStart } from "./QuickStart"
+import Students from "./Students"
+import Aim from "./Aim"
+import Benefits from "./Benefits"
+import HelpUs from "./HelpUs"
 
 
 export const Documentation = () => {
@@ -14,10 +18,14 @@ export const Documentation = () => {
                         <DocNavigation />
                     </div>
                     <div className="lg:col-span-9 col-span-12">
-                        <Introduction />
-                        <PackageStructure />
-                        <QuickStart />
-                        <Configuration />
+                        {/* <Introduction /> */}
+                        <Students />
+                        <Aim />
+                        <Benefits />
+                        <HelpUs />
+                        {/* <PackageStructure /> */}
+                        {/* <QuickStart /> */}
+                        {/* <Configuration /> */}
                     </div>
                 </div>
             </div>

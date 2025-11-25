@@ -1,5 +1,6 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { MessageCircle, ArrowUp, ArrowDown, Search, Tag, Plus, X, ChevronDown, ChevronUp } from "lucide-react";
 
 type Question = {
@@ -23,6 +24,8 @@ type Reply = {
 };
 
 export default function ForumPage() {
+  const supabase = createClientComponentClient();
+
   const [searchQuery, setSearchQuery] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -47,24 +50,95 @@ export default function ForumPage() {
   const [newQuestion, setNewQuestion] = useState({ title: "", body: "", tags: "" });
   const [replyText, setReplyText] = useState<Record<string, string>>({});
 
+  // Load questions from Supabase on mount
+  useEffect(() => {
+    const loadQuestions = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("forum_questions")
+          .select("id, title, body, tags, upvotes, answers, author, created_at")
+          .order("created_at", { ascending: false });
+
+        if (error) {
+          console.error("Error loading forum questions:", error);
+          return;
+        }
+
+        if (data) {
+          // Map DB rows to local Question shape
+          const mapped = data.map((row: any) => ({
+            id: String(row.id),
+            title: row.title,
+            body: row.body,
+            tags: row.tags || [],
+            upvotes: row.upvotes ?? 0,
+            answers: row.answers ?? 0,
+            author: row.author ?? "Anonymous",
+            date: row.created_at ? new Date(row.created_at).toLocaleString() : "",
+            replies: [],
+          }));
+
+          setQuestions(mapped as any);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    loadQuestions();
+  }, []);
+
   const handleAskQuestion = () => {
     if (!newQuestion.title.trim() || !newQuestion.body.trim()) return;
 
-    const newQ: Question = {
-      id: Date.now().toString(),
-      title: newQuestion.title,
-      body: newQuestion.body,
-      tags: newQuestion.tags.split(",").map((t) => t.trim()),
-      upvotes: 0,
-      answers: 0,
-      author: "You",
-      date: "just now",
-      replies: [],
-    };
+    (async () => {
+      try {
+        // get current user to set author (if available)
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
 
-    setQuestions([newQ, ...questions]);
-    setShowModal(false);
-    setNewQuestion({ title: "", body: "", tags: "" });
+        const insertObj: any = {
+          title: newQuestion.title,
+          body: newQuestion.body,
+          tags: newQuestion.tags ? newQuestion.tags.split(",").map((t) => t.trim()) : [],
+          upvotes: 0,
+          answers: 0,
+          author: user?.email || user?.user_metadata?.name || "Anonymous",
+        };
+
+        const { data, error } = await supabase
+          .from("forum_questions")
+          .insert(insertObj)
+          .select()
+          .maybeSingle();
+
+        if (error) {
+          console.error("Error inserting question:", error);
+          return;
+        }
+
+        // prepend new question to UI list
+        const inserted = data;
+        const newQ: Question = {
+          id: String(inserted.id || Date.now()),
+          title: inserted.title,
+          body: inserted.body,
+          tags: inserted.tags || [],
+          upvotes: inserted.upvotes ?? 0,
+          answers: inserted.answers ?? 0,
+          author: inserted.author ?? "You",
+          date: inserted.created_at ? new Date(inserted.created_at).toLocaleString() : "just now",
+          replies: [],
+        };
+
+        setQuestions((prev) => [newQ, ...prev]);
+        setShowModal(false);
+        setNewQuestion({ title: "", body: "", tags: "" });
+      } catch (err) {
+        console.error(err);
+      }
+    })();
   };
 
   const handleReply = (id: string) => {

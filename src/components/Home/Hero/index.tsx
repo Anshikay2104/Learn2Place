@@ -11,6 +11,8 @@ const Hero = () => {
     const supabase = createClientComponentClient();
 
     const [isAlumni, setIsAlumni] = useState(false);
+    const [profileData, setProfileData] = useState<any>(null);
+    const [profileError, setProfileError] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -99,6 +101,17 @@ const Hero = () => {
                                         className="text-white text-4xl inline-block"
                                     />
                                 </button>
+                            </div>
+                        )}
+
+                        {/* Debug panel (visible) - shows fetched profile & errors for debugging */}
+                        {!loading && (profileData || profileError) && (
+                            <div className="mt-4 p-4 bg-white/80 dark:bg-black/60 rounded border text-sm text-black/80">
+                                <p className="font-semibold mb-1">Debug: profile data</p>
+                                <pre className="whitespace-pre-wrap text-xs mb-2">{JSON.stringify(profileData, null, 2)}</pre>
+                                {profileError && (
+                                    <p className="text-red-600 text-xs">Error: {JSON.stringify(profileError)}</p>
+                                )}
                             </div>
                         )}
 

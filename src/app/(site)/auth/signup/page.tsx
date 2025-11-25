@@ -27,7 +27,7 @@ const SignUp = () => {
   const [alumniError, setAlumniError] = useState("");
   const [alumniLoading, setAlumniLoading] = useState(false);
 
-  /* ----------------------- ROLE SELECTION ----------------------- */
+  /* ROLE SELECTION */
   const handleRoleSelect = (selectedRole: "alumni" | "student") => {
     setRole(selectedRole);
 
@@ -37,7 +37,7 @@ const SignUp = () => {
     }
   };
 
-  /* ---------------------- ALUMNI VERIFICATION ---------------------- */
+  /* VERIFY ALUMNI EMAIL */
   const verifyAlumni = async () => {
     setAlumniError("");
 
@@ -63,37 +63,50 @@ const SignUp = () => {
       toast.success("Email verified!");
       setAlumniVerified(true);
       setShowAlumniModal(false);
-    } catch {
-      setAlumniError("Something went wrong. Try again.");
+
     } finally {
       setAlumniLoading(false);
     }
   };
 
-  /* ------------------------- FINAL SIGNUP ------------------------- */
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  /* FINAL SIGNUP */
+  const handleSubmit = async (e: any) => {
     e.preventDefault();
   setLoading(true);
 
-  if (role === "alumni" && !alumniVerified) {
-    toast.error("Please verify your alumni email first.");
-    setLoading(false);
-    return;
-  }
+    if (!role) {
+      toast.error("Please select a role first.");
+      setLoading(false);
+      return;
+    }
 
-  const formData = new FormData(e.currentTarget);
-  const name = formData.get("name") as string;
-  const email = formData.get("email") as string;
-  const password = formData.get("password") as string;
+    const form = Object.fromEntries(new FormData(e.currentTarget).entries());
+    const { name, email, password } = form as {
+      name: string;
+      email: string;
+      password: string;
+    };
 
-  // SIGNUP USING EMAIL+PASSWORD
-  const { data, error } = await supabase.auth.signUp({
-    email: email as string,
-    password: password as string,
-    options: {
-      data: {
-        full_name: name,
-        role: role || "student",
+    /* Alumni must use verified email */
+    if (role === "alumni" && email.trim() !== alumniEmail.trim()) {
+      toast.error("Use the same email you verified as alumni.");
+      setLoading(false);
+      return;
+    }
+
+    if (role === "alumni" && !alumniVerified) {
+      toast.error("Verify alumni email first.");
+      setLoading(false);
+      return;
+    }
+
+    // 1) Create auth user
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { full_name: name, role },
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
       emailRedirectTo: `${window.location.origin}/auth/callback`,
     },
@@ -105,19 +118,35 @@ const SignUp = () => {
       return;
     }
 
-    toast.success("Account created! Check your email.");
+    const user = data.user;
+
+    if (!user) {
+      toast.error("User not created properly.");
+      setLoading(false);
+      return;
+    }
+
+    // 2) Create profile row WITH EMAIL ✔
+    await supabase.from("profiles").insert({
+      id: user.id,
+      full_name: name,
+      role,
+      email, // 🔥 VERY IMPORTANT
+      is_verified_alumni: role === "alumni" ? true : false,
+    });
+
+    toast.success("Account created. Verify your email.");
     router.push("/signin");
   };
 
 
   return (
-    <div
-      className="fixed inset-0 z-[9999] bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm"
-    >
-      {/* ROLE SELECTION */}
-      {role === null && <RoleSelectionModal onSelect={handleRoleSelect} onClose={() => router.push("/")}/>}
+    <div className="fixed inset-0 z-[9999] bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm">
+      
+      {role === null && (
+        <RoleSelectionModal onSelect={handleRoleSelect} onClose={() => router.push("/")}/>
+      )}
 
-      {/* ALUMNI EMAIL POPUP */}
       {showAlumniModal && (
         <AlumniEmailModal
           email={alumniEmail}
@@ -129,64 +158,39 @@ const SignUp = () => {
         />
       )}
 
-      {/* MAIN SIGNUP POPUP */}
       {(role === "student" || alumniVerified) && (
-        <div className="bg-white w-full max-w-md rounded-2xl p-8 relative shadow-xl animate-fadeIn">
+        <div className="bg-white w-full max-w-md rounded-2xl p-8 shadow-xl relative">
+          <button className="absolute right-4 top-4" onClick={() => router.push("/")}>×</button>
 
-          {/* Close Button */}
-          <button
-            className="absolute right-4 top-4 text-gray-600 text-2xl hover:text-black"
-            onClick={() => router.push("/")}
-          >
-            ×
-          </button>
-
-          <div className="w-32 mx-auto mb-6">
-            <Logo />
-          </div>
+          <div className="w-32 mx-auto mb-6"><Logo /></div>
 
           <SocialSignUp />
 
-          <div className="text-center my-6 text-gray-500 font-medium">OR</div>
+          <div className="text-center my-6 text-gray-500">OR</div>
 
           <form onSubmit={handleSubmit}>
-            <input
-              type="text"
-              name="name"
-              placeholder="Full Name"
-              required
-              className="w-full border px-4 py-3 rounded-lg mb-3"
-            />
+            <input type="text" name="name" placeholder="Full Name" required className="w-full border p-3 rounded mb-3"/>
 
             <input
               type="email"
               name="email"
               placeholder="Email"
               required
-              className="w-full border px-4 py-3 rounded-lg mb-3"
+              defaultValue={role === "alumni" ? alumniEmail : ""}
+              disabled={role === "alumni"}   // lock alumni email
+              className="w-full border p-3 rounded mb-3"
             />
 
-            <input
-              type="password"
-              name="password"
-              placeholder="Password"
-              required
-              className="w-full border px-4 py-3 rounded-lg mb-6"
-            />
+            <input type="password" name="password" placeholder="Password" required className="w-full border p-3 rounded mb-6"/>
 
-            <button
-              type="submit"
-              className="w-full bg-primary text-white py-3 rounded-lg font-semibold flex justify-center"
-            >
+            <button className="w-full bg-primary text-white p-3 rounded flex justify-center">
               {loading ? <Loader /> : "Sign Up"}
             </button>
           </form>
 
-          <p className="text-center mt-4 text-gray-700">
+          <p className="text-center mt-4">
             Already have an account?
-            <Link href="/signin" className="text-primary ml-1">
-              Sign In
-            </Link>
+            <Link href="/signin" className="text-primary ml-1">Sign In</Link>
           </p>
         </div>
       )}

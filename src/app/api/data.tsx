@@ -99,33 +99,19 @@ export const courseData: {
 
 export const MentorData: { profession: string; name: string; imgSrc: string }[] = [
   {
-    profession: 'Senior UX Designer',
-    name: 'Shoo Thar Mien',
-    imgSrc: '/images/mentor/user3.png',
+    profession: 'Software Engineer, Walmart',
+    name: 'Anshika Yadav',
+    imgSrc: '/images/mentor/anshikapic.jpeg',
   },
   {
-    profession: 'Senior UX Designer',
-    name: 'Shoo Thar Mien',
-    imgSrc: '/images/mentor/user2.png',
+    profession: 'Software Engineer, GoDaddy',
+    name: 'Aditi Upadhyay',
+    imgSrc: '/images/mentor/aditipic.jpeg',
   },
   {
-    profession: 'Senior UX Designer',
-    name: 'Shoo Thar Mien',
-    imgSrc: '/images/mentor/user1.png',
+    profession: 'Software Engineer, IBM ISL',
+    name: 'Gunjan Aggarwal',
+    imgSrc: '/images/mentor/gunjanpic.jpg',
   },
-  {
-    profession: 'Senior UX Designer',
-    name: 'Shoo Thar Mien',
-    imgSrc: '/images/mentor/user3.png',
-  },
-  {
-    profession: 'Senior UX Designer',
-    name: 'Shoo Thar Mien',
-    imgSrc: '/images/mentor/user2.png',
-  },
-  {
-    profession: 'Senior UX Designer',
-    name: 'Shoo Thar Mien',
-    imgSrc: '/images/mentor/user1.png',
-  },
+
 ]
