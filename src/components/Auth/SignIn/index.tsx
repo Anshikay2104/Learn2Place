@@ -18,9 +18,6 @@ const SignInModal = () => {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  // -----------------------------------
-  // SIGN IN + PROFILE CHECK LOGIC
-  // -----------------------------------
   const loginUser = async (e: any) => {
     e.preventDefault();
     setLoading(true);
@@ -28,7 +25,6 @@ const SignInModal = () => {
 
     let data, error;
 
-    // 1️⃣ LOGIN WITH SUPABASE AUTH
     try {
       const result = await supabase.auth.signInWithPassword({
         email,
@@ -37,7 +33,7 @@ const SignInModal = () => {
 
       data = result.data;
       error = result.error;
-    } catch (err) {
+    } catch {
       setErrorMessage("Invalid email or password.");
       setLoading(false);
       return;
@@ -56,61 +52,46 @@ const SignInModal = () => {
       return;
     }
 
-    // 2️⃣ CHECK PROFILE EXISTS
-    const { data: profile, error: profileError } = await supabase
+    // Check profile exists
+    const { data: profile } = await supabase
       .from("profiles")
       .select("*")
       .eq("id", user.id)
       .single();
 
-    if (profileError || !profile) {
+    if (!profile) {
       await supabase.auth.signOut();
       setErrorMessage("Account not found. Please sign up first.");
       setLoading(false);
       return;
     }
 
-    // 3️⃣ REDIRECT BASED ON ROLE
-    if (profile.role === "student") {
-      toast.success("Welcome Student!");
-      router.push("/stuProfile");
-    } else if (profile.role === "alumni") {
-      toast.success("Welcome Alumni!");
-      router.push("/profile");
-    } else {
-      setErrorMessage("Invalid account role.");
-      await supabase.auth.signOut();
-    }
+    toast.success("Welcome!");
+    router.push(profile.role === "student" ? "/stuProfile" : "/profile");
 
     setLoading(false);
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999] p-4">
       <div className="bg-white rounded-2xl p-8 w-full max-w-md shadow-xl relative">
 
-        {/* CLOSE BUTTON */}
         <button
-          className="absolute right-4 top-4 text-gray-600 hover:text-black text-xl"
+          className="absolute right-4 top-4 text-xl"
           onClick={() => router.push("/")}
         >
           ✕
         </button>
 
-        {/* LOGO */}
         <div className="flex justify-center mb-6">
           <Logo />
         </div>
 
-        {/* GOOGLE/GITHUB LOGIN */}
         <SocialSignIn />
 
-        {/* OR DIVIDER */}
         <div className="text-center my-6 text-gray-500 text-sm">OR</div>
 
-        {/* FORM */}
         <form onSubmit={loginUser} className="flex flex-col gap-4">
-
           <input
             type="email"
             placeholder="Email"
@@ -127,34 +108,28 @@ const SignInModal = () => {
             onChange={(e) => setPassword(e.target.value)}
           />
 
-          {/* ERROR MESSAGE SHOWN ON SCREEN */}
           {errorMessage && (
-            <p className="text-red-600 text-sm text-center -mt-2">
-              {errorMessage}
-            </p>
+            <p className="text-red-600 text-sm text-center -mt-2">{errorMessage}</p>
           )}
 
-          <button
-            type="submit"
-            className="bg-primary w-full py-3 rounded-md text-white font-semibold flex items-center justify-center"
-          >
+          <button className="bg-primary w-full py-3 rounded-md text-white flex justify-center">
             {loading ? <Loader /> : "Sign In"}
           </button>
         </form>
 
-        <p className="text-center text-sm text-gray-600 mt-4">
+        <p className="text-center mt-4">
           Don’t have an account?
           <span
-            className="text-primary font-semibold cursor-pointer ml-1"
+            className="text-primary ml-1 cursor-pointer"
             onClick={() => router.push("/auth/signup")}
           >
             Sign Up
           </span>
         </p>
+
       </div>
     </div>
   );
 };
 
 export default SignInModal;
-4

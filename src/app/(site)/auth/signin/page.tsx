@@ -1,4 +1,4 @@
-// "use client";
+// no need for "use client"
 
 import SignInModal from "@/components/Auth/SignIn";
 
