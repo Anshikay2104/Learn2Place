@@ -1,38 +1,33 @@
 "use client";
-import React from "react";
+
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
 const SocialSignUp = () => {
   const supabase = createClientComponentClient();
 
-  const signUpWithGoogle = async () => {
+  const signInWithProvider = async (provider: "google" | "github") => {
     await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: `${location.origin}/auth/callback` },
-    });
-  };
-
-  const signUpWithGithub = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: "github",
-      options: { redirectTo: `${location.origin}/auth/callback` },
+      provider,
+      options: {
+        redirectTo: `${location.origin}/auth/callback`,
+      },
     });
   };
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3 mb-6">
       <button
-        onClick={signUpWithGoogle}
+        onClick={() => signInWithProvider("google")}
         className="w-full flex items-center justify-center gap-2.5 rounded-lg p-3.5 bg-primary text-white border border-primary"
       >
-        Sign Up with Google
+        Continue with Google
       </button>
 
       <button
-        onClick={signUpWithGithub}
+        onClick={() => signInWithProvider("github")}
         className="w-full flex items-center justify-center gap-2.5 rounded-lg p-3.5 bg-primary text-white border border-primary"
       >
-        Sign Up with GitHub
+        Continue with GitHub
       </button>
     </div>
   );

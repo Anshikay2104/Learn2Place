@@ -26,52 +26,18 @@ const Hero = () => {
                 return;
             }
 
-            // Try to fetch an existing profile. Use maybeSingle so we don't
-            // get an error when there are 0 rows.
-            const { data: profile, error } = await supabase
+            // SAFE PROFILE FETCH — NO 406 ERROR
+            const { data, error } = await supabase
                 .from("profiles")
                 .select("role, is_verified_alumni")
                 .eq("id", user.id)
-                .maybeSingle();
+                .maybeSingle(); // replaces .single(), prevents 406
 
-            // Debug logs to help trace why the conditional UI might not appear
-            // (remove or change to a proper logger in production)
-            // eslint-disable-next-line no-console
-            console.debug("Hero loadProfile user:", user);
-            // eslint-disable-next-line no-console
-            console.debug("Hero loadProfile profile:", profile, "error:", error);
-
-            // Store profile and error for visible debug in UI
-            setProfileData(profile ?? null);
-            setProfileError(error ?? null);
-
-            // If no profile exists, try to create one from the auth user's
-            // metadata (signup sets `options.data` with name & role).
-            if (!profile) {
-                const authRole = (user.user_metadata && (user.user_metadata.role || user.user_metadata?.role)) || null;
-
-                if (authRole) {
-                    // attempt to create a profile row so the rest of the app
-                    // (and the alumni check) can work immediately after signup
-                    const { data: inserted, error: insertErr } = await supabase
-                        .from("profiles")
-                        .insert({ id: user.id, role: authRole })
-                        .select()
-                        .maybeSingle();
-
-                    // Save whatever we got back
-                    setProfileData(inserted ?? null);
-                    setProfileError(insertErr ?? null);
-
-                    // Show button if the inserted role is alumni
-                    setIsAlumni(inserted?.role === "alumni");
-                } else {
-                    // No profile and no role in metadata — default to not showing
-                    setIsAlumni(false);
-                }
-            } else {
-                // Profile exists — show button when role is alumni
-                setIsAlumni(profile.role === "alumni");
+            if (!error && data) {
+                setIsAlumni(
+                    data.role === "alumni" &&
+                    data.is_verified_alumni === true
+                );
             }
 
             setLoading(false);
@@ -152,7 +118,7 @@ const Hero = () => {
                         {/* BOTTOM FEATURES */}
                         <div className="flex items-center justify-between pt-10 lg:pt-4">
                             <div className="flex gap-2">
-                                    <Image src={`${getImagePrefix()}images/banner/check-circle.svg`} width={30} height={30} alt="check icon" />
+                                <Image src={`${getImagePrefix()}images/banner/check-circle.svg`} width={30} height={30} alt="check icon" />
                                 <p className="text-sm sm:text-lg text-black">Flexible</p>
                             </div>
                             <div className="flex gap-2">
