@@ -6,23 +6,17 @@ const Logo: React.FC = () => {
   return (
     <Link
       href="/"
-      style={{
-        display: "flex",
-        alignItems: "center",
-        marginRight: "48px", // more spacing from Home
-      }}
+      className="flex items-center mr-4"
     >
-      <Image
-        src={`${getImagePrefix()}images/logo/logo.svg`}
-        alt="logo"
-        width={50}   // significantly smaller now
-        height={18}  // proportionally scaled
-        style={{
-          width: "auto",
-          height: "auto",
-        }}
-        quality={100}
-      />
+      <div className="relative w-[120px] h-[50px] md:w-[150px] md:h-[60px]">
+        <Image
+          src={`${getImagePrefix()}images/logo/logo.svg`}
+          alt="logo"
+          fill
+          className="object-contain"
+          priority
+        />
+      </div>
     </Link>
   );
 };

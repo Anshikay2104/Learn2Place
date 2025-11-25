@@ -1,111 +1,160 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+
 import Logo from "@/components/Layout/Header/Logo";
 import SocialSignIn from "../SocialSignIn";
 import Loader from "@/components/Common/Loader";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
-const Signin = () => {
+const SignInModal = () => {
   const router = useRouter();
   const supabase = createClientComponentClient();
 
-  const [loginData, setLoginData] = useState({
-    email: "",
-    password: "",
-  });
-
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
-  // ---------------------------
-  // LOGIN WITH EMAIL + PASSWORD
-  // ---------------------------
+  // -----------------------------------
+  // SIGN IN + PROFILE CHECK LOGIC
+  // -----------------------------------
   const loginUser = async (e: any) => {
     e.preventDefault();
     setLoading(true);
+    setErrorMessage("");
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: loginData.email,
-      password: loginData.password,
-    });
+    let data, error;
 
-    if (error) {
-      toast.error(error.message);
+    // 1️⃣ LOGIN WITH SUPABASE AUTH
+    try {
+      const result = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      data = result.data;
+      error = result.error;
+    } catch (err) {
+      setErrorMessage("Invalid email or password.");
       setLoading(false);
       return;
     }
 
-    toast.success("Login successful");
+    if (error) {
+      setErrorMessage("Invalid email or password.");
+      setLoading(false);
+      return;
+    }
+
+    const user = data?.user;
+    if (!user) {
+      setErrorMessage("Something went wrong.");
+      setLoading(false);
+      return;
+    }
+
+    // 2️⃣ CHECK PROFILE EXISTS
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", user.id)
+      .single();
+
+    if (profileError || !profile) {
+      await supabase.auth.signOut();
+      setErrorMessage("Account not found. Please sign up first.");
+      setLoading(false);
+      return;
+    }
+
+    // 3️⃣ REDIRECT BASED ON ROLE
+    if (profile.role === "student") {
+      toast.success("Welcome Student!");
+      router.push("/stuProfile");
+    } else if (profile.role === "alumni") {
+      toast.success("Welcome Alumni!");
+      router.push("/profile");
+    } else {
+      setErrorMessage("Invalid account role.");
+      await supabase.auth.signOut();
+    }
+
     setLoading(false);
-    router.push("/");
   };
 
   return (
-    <>
-      <div className="mb-10 text-center mx-auto inline-block max-w-[160px]">
-        <Logo />
-      </div>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
+      <div className="bg-white rounded-2xl p-8 w-full max-w-md shadow-xl relative">
 
-      {/* GOOGLE SIGN IN BUTTON */}
-      <SocialSignIn />
+        {/* CLOSE BUTTON */}
+        <button
+          className="absolute right-4 top-4 text-gray-600 hover:text-black text-xl"
+          onClick={() => router.push("/")}
+        >
+          ✕
+        </button>
 
-      <span className="z-1 relative my-8 block text-center before:content-[''] before:absolute before:h-px before:w-40% before:bg-black/15 before:left-0 before:top-3 after:content-[''] after:absolute after:h-px after:w-40% after:bg-black/15 after:top-3 after:right-0">
-        <span className="text-body-secondary relative z-10 inline-block px-3 text-base text-black">
-          OR
-        </span>
-      </span>
+        {/* LOGO */}
+        <div className="flex justify-center mb-6">
+          <Logo />
+        </div>
 
-      <form onSubmit={loginUser}>
-        <div className="mb-[22px]">
+        {/* GOOGLE/GITHUB LOGIN */}
+        <SocialSignIn />
+
+        {/* OR DIVIDER */}
+        <div className="text-center my-6 text-gray-500 text-sm">OR</div>
+
+        {/* FORM */}
+        <form onSubmit={loginUser} className="flex flex-col gap-4">
+
           <input
             type="email"
             placeholder="Email"
-            onChange={(e) =>
-              setLoginData({ ...loginData, email: e.target.value })
-            }
-            className="w-full rounded-md border border-black/20 bg-transparent px-5 py-3 text-base text-dark placeholder:text-grey focus:border-primary text-white"
+            required
+            className="w-full border px-5 py-3 rounded-md"
+            onChange={(e) => setEmail(e.target.value)}
           />
-        </div>
 
-        <div className="mb-[22px]">
           <input
             type="password"
             placeholder="Password"
-            onChange={(e) =>
-              setLoginData({ ...loginData, password: e.target.value })
-            }
-            className="w-full rounded-md border border-black/20 bg-transparent px-5 py-3 text-base text-dark placeholder:text-grey focus:border-primary text-white"
+            required
+            className="w-full border px-5 py-3 rounded-md"
+            onChange={(e) => setPassword(e.target.value)}
           />
-        </div>
 
-        <div className="mb-9">
+          {/* ERROR MESSAGE SHOWN ON SCREEN */}
+          {errorMessage && (
+            <p className="text-red-600 text-sm text-center -mt-2">
+              {errorMessage}
+            </p>
+          )}
+
           <button
             type="submit"
-            className="bg-primary w-full py-3 rounded-lg text-18 font-medium border border-primary hover:text-primary hover:bg-transparent flex items-center justify-center"
+            className="bg-primary w-full py-3 rounded-md text-white font-semibold flex items-center justify-center"
           >
-            Sign In {loading && <Loader />}
+            {loading ? <Loader /> : "Sign In"}
           </button>
-        </div>
-      </form>
+        </form>
 
-      <Link
-        href="/forgot-password"
-        className="mb-2 inline-block text-base text-white hover:text-primary"
-      >
-        Forgot Password?
-      </Link>
-
-      <p className="text-body-secondary text-white text-base">
-        Not a member yet?{" "}
-        <Link href="/auth/signup" className="text-primary hover:underline">
-          Sign Up
-        </Link>
-      </p>
-    </>
+        <p className="text-center text-sm text-gray-600 mt-4">
+          Don’t have an account?
+          <span
+            className="text-primary font-semibold cursor-pointer ml-1"
+            onClick={() => router.push("/auth/signup")}
+          >
+            Sign Up
+          </span>
+        </p>
+      </div>
+    </div>
   );
 };
 
-export default Signin;
+export default SignInModal;
+4

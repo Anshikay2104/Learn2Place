@@ -20,24 +20,20 @@ const SignUp = () => {
   const [role, setRole] = useState<"alumni" | "student" | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Alumni modal states
+  // Alumni modal
   const [alumniEmail, setAlumniEmail] = useState("");
   const [alumniVerified, setAlumniVerified] = useState(false);
   const [showAlumniModal, setShowAlumniModal] = useState(false);
   const [alumniError, setAlumniError] = useState("");
   const [alumniLoading, setAlumniLoading] = useState(false);
 
-  /* ----------------------- ROLE SELECTION ----------------------- */
+  /* ROLE SELECTION HANDLER */
   const handleRoleSelect = (selectedRole: "alumni" | "student") => {
     setRole(selectedRole);
-
-    if (selectedRole === "alumni") {
-      setAlumniError("");
-      setShowAlumniModal(true);
-    }
+    if (selectedRole === "alumni") setShowAlumniModal(true);
   };
 
-  /* ---------------------- ALUMNI VERIFICATION ---------------------- */
+  /* VERIFY ALUMNI */
   const verifyAlumni = async () => {
     setAlumniError("");
 
@@ -60,24 +56,22 @@ const SignUp = () => {
         return;
       }
 
-      toast.success("Email verified as alumni!");
+      toast.success("Email verified!");
       setAlumniVerified(true);
       setShowAlumniModal(false);
 
-    } catch (err) {
-      setAlumniError("Something went wrong. Try again.");
     } finally {
       setAlumniLoading(false);
     }
   };
 
-  /* ------------------------- FINAL SIGNUP ------------------------- */
+  /* FINAL SIGNUP */
   const handleSubmit = async (e: any) => {
     e.preventDefault();
     setLoading(true);
 
     if (role === "alumni" && !alumniVerified) {
-      toast.error("Please verify your alumni email first.");
+      toast.error("Verify alumni email first.");
       setLoading(false);
       return;
     }
@@ -85,37 +79,36 @@ const SignUp = () => {
     const form = Object.fromEntries(new FormData(e.currentTarget).entries());
     const { name, email, password }: any = form;
 
-    try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { name, role },
-          emailRedirectTo: `${location.origin}/auth/callback`,
-        },
-      });
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { name, role },
+        emailRedirectTo: `${location.origin}/auth/callback`,
+      },
+    });
 
-      if (error) {
-        toast.error(error.message);
-        return;
-      }
-
-      toast.success("Account created! Check your email.");
-      router.push("/signin");
-
-    } catch {
-      toast.error("Signup failed.");
-    } finally {
+    if (error) {
+      toast.error(error.message);
       setLoading(false);
+      return;
     }
+
+    toast.success("Account created! Check your email.");
+    router.push("/");
   };
 
   return (
     <>
-      {/* ROLE SELECTION POPUP — only one box */}
-      {role === null && <RoleSelectionModal onSelect={handleRoleSelect} />}
+      {/* Role Modal */}
+      {role === null && (
+        <RoleSelectionModal
+          onSelect={handleRoleSelect}
+          onClose={() => router.push("/")}
+        />
+      )}
 
-      {/* ALUMNI EMAIL VERIFICATION */}
+      {/* Alumni Modal */}
       {showAlumniModal && (
         <AlumniEmailModal
           email={alumniEmail}
@@ -127,69 +120,57 @@ const SignUp = () => {
         />
       )}
 
-      {/* Hide logo when role selection modal is open */}
-      {role !== null && (
-        <div className="mb-10 text-center mx-auto inline-block max-w-[160px]">
-          <Logo />
-        </div>
-      )}
-
-      {/* Show Social + Form only after role chosen */}
+      {/* Signup Form */}
       {(role === "student" || alumniVerified) && (
         <>
+          <div className="mb-10 text-center mx-auto inline-block max-w-[160px]">
+            <Logo />
+          </div>
+
           <SocialSignUp />
 
-          <span className="relative my-6 block text-center">
-            <span className="relative z-10 inline-block px-3 text-base text-white">
-              OR
-            </span>
-          </span>
+          <div className="my-6 text-center text-black">OR</div>
 
-          <form onSubmit={handleSubmit} className="mt-2">
-            <div className="mb-5">
-              <input
-                type="text"
-                placeholder="Full Name"
-                name="name"
-                required
-                className="w-full rounded-md border bg-transparent px-5 py-3 text-white placeholder-gray-400"
-              />
-            </div>
+          <form onSubmit={handleSubmit}>
+            <input
+              type="text"
+              placeholder="Full Name"
+              name="name"
+              required
+              className="w-full border px-5 py-3 rounded-md mb-5"
+            />
 
-            <div className="mb-5">
-              <input
-                type="email"
-                placeholder="Email"
-                name="email"
-                required
-                className="w-full rounded-md border bg-transparent px-5 py-3 text-white placeholder-gray-400"
-              />
-            </div>
+            <input
+              type="email"
+              placeholder="Email"
+              name="email"
+              required
+              className="w-full border px-5 py-3 rounded-md mb-5"
+            />
 
-            <div className="mb-5">
-              <input
-                type="password"
-                placeholder="Password"
-                name="password"
-                required
-                className="w-full rounded-md border bg-transparent px-5 py-3 text-white placeholder-gray-400"
-              />
-            </div>
+            <input
+              type="password"
+              placeholder="Password"
+              name="password"
+              required
+              className="w-full border px-5 py-3 rounded-md mb-5"
+            />
 
             <button
-              type="submit"
-              className="w-full bg-primary py-3 rounded-lg flex justify-center items-center disabled:opacity-60"
-              disabled={loading}
+              className="bg-primary w-full py-3 rounded-lg text-white flex justify-center"
             >
               {loading ? <Loader /> : "Sign Up"}
             </button>
           </form>
 
-          <p className="text-white text-base mt-4">
+          <p className="text-black text-center mt-4">
             Already have an account?
-            <Link href="/signin" className="text-primary ml-2">
+            <span
+              className="text-primary ml-2 cursor-pointer"
+              onClick={() => router.push("/signin")}
+            >
               Sign In
-            </Link>
+            </span>
           </p>
         </>
       )}
