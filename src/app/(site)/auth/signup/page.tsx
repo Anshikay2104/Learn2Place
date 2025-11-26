@@ -79,7 +79,7 @@ const SignUp = () => {
   /* ---------------- SUBMIT SIGNUP ---------------- */
   const handleSubmit = async (e: any) => {
     e.preventDefault();
-    setLoading(true);
+  setLoading(true);
 
     if (!role) {
       toast.error("Please select a role first.");
@@ -123,7 +123,9 @@ const SignUp = () => {
         data: { full_name: name, role },
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
-    });
+      emailRedirectTo: `${window.location.origin}/auth/callback`,
+    },
+  });
 
     if (error) {
       toast.error(error.message);
@@ -150,6 +152,7 @@ const SignUp = () => {
     toast.success("Account created! Check your email for verification.");
     router.push("/auth/signin");
   };
+
 
   return (
     <div className="fixed inset-0 z-[9999] bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm">
