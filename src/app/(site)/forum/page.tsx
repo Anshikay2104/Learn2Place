@@ -173,7 +173,7 @@ export default function ForumPage() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-48 px-6 lg:px-12">
+    <div className="min-h-screen bg-gray-50 pt-24 px-6 lg:px-12">
       <div className="max-w-6xl mx-auto">
         {/* === HEADER === */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8">

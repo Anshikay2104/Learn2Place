@@ -45,12 +45,12 @@ const footer = () => {
             <h3 className="mb-4 text-2xl font-medium">Other</h3>
             <ul>
               <li className="mb-2 text-black/50 hover:text-primary w-fit">
-                <Link href="#">
+                <Link href="/documentation">
                   About Us
                 </Link>
               </li>
               <li className="mb-2 text-black/50 hover:text-primary w-fit">
-                <Link href="#">
+                <Link href="/team">
                   Our Team
                 </Link>
               </li>
@@ -77,21 +77,21 @@ const footer = () => {
                 icon="tabler:brand-google-maps"
                 className="text-primary text-3xl inline-block me-2"
               />
-              <h5 className="text-lg text-black/60">925 Filbert Street Pennsylvania 18072</h5>
+              <h5 className="text-lg text-black/60">Mody University of Science and Technology, Lakshmangarh (Sikar), 332311</h5>
             </div>
             <div className="flex gap-2 mt-10">
               <Icon
                 icon="tabler:phone"
                 className="text-primary text-3xl inline-block me-2"
               />
-              <h5 className="text-lg text-black/60">+45 3411-4411</h5>
+              <h5 className="text-lg text-black/60">+91 93856 23256</h5>
             </div>
             <div className="flex gap-2 mt-10">
               <Icon
                 icon="tabler:folder"
                 className="text-primary text-3xl inline-block me-2"
               />
-              <h5 className="text-lg text-black/60">info@gmail.com</h5>
+              <h5 className="text-lg text-black/60">Learn2Place.2025@gmail.com</h5>
             </div>
           </div>
         </div>

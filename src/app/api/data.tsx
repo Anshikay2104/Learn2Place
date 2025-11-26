@@ -1,3 +1,6 @@
+
+import { Icon } from "@iconify/react";
+
 export const TruestedCompanies: { imgSrc: string }[] = [
   {
     imgSrc: "/images/companies/amazon.svg"
@@ -97,21 +100,29 @@ export const courseData: {
     },
   ]
 
-export const MentorData: { profession: string; name: string; imgSrc: string }[] = [
+export const MentorData: {
+  profession: string;
+  name: string;
+  imgSrc: string;
+  linkedin: string;
+}[] = [
   {
-    profession: 'Software Engineer, Walmart',
-    name: 'Anshika Yadav',
-    imgSrc: '/images/mentor/anshikapic.jpeg',
+    profession: "Software Engineer, Walmart",
+    name: "Anshika Yadav",
+    imgSrc: "/images/mentor/anshikapic.jpeg",
+    linkedin: "https://www.linkedin.com/in/anshika-yadav-5a287a1b8/",
   },
   {
-    profession: 'Software Engineer, GoDaddy',
-    name: 'Aditi Upadhyay',
-    imgSrc: '/images/mentor/aditipic.jpeg',
+    profession: "Software Engineer, GoDaddy",
+    name: "Aditi Upadhyay",
+    imgSrc: "/images/mentor/aditipic.jpeg",
+    linkedin: "https://www.linkedin.com/in/aditi-upadhyay/",
   },
   {
-    profession: 'Software Engineer, IBM ISL',
-    name: 'Gunjan Aggarwal',
-    imgSrc: '/images/mentor/gunjanpic.jpg',
+    profession: "Software Engineer, IBM ISL",
+    name: "Gunjan Aggarwal",
+    imgSrc: "/images/mentor/gunjanpic.jpg",
+    linkedin: "https://www.linkedin.com/in/gunjan-aggarwal/",
   },
+];
 
-]
