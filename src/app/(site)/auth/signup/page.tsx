@@ -108,9 +108,7 @@ const SignUp = () => {
         data: { full_name: name, role },
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
-      emailRedirectTo: `${window.location.origin}/auth/callback`,
-    },
-  });
+    });
 
     if (error) {
       toast.error(error.message);
