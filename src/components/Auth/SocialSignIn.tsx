@@ -2,26 +2,38 @@
 
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
-const SocialSignIn = () => {
+const SocialSignUp = () => {
   const supabase = createClientComponentClient();
 
-  const loginWithGoogle = async () => {
+  const signInWithProvider = async (provider: "google" | "github") => {
     await supabase.auth.signInWithOAuth({
-      provider: "google",
+      provider,
       options: {
         redirectTo: `${location.origin}/auth/callback`,
+        queryParams: {
+          prompt: "select_account", // 🔥 ALWAYS show account chooser
+        },
       },
     });
   };
 
   return (
-    <button
-      onClick={loginWithGoogle}
-      className="w-full bg-primary text-white py-3 rounded-lg"
-    >
-      Sign In with Google
-    </button>
+    <div className="flex flex-col gap-3 mb-6">
+      <button
+        onClick={() => signInWithProvider("google")}
+        className="w-full flex items-center justify-center gap-2.5 rounded-lg p-3.5 bg-primary text-white border border-primary"
+      >
+        Continue with Google
+      </button>
+
+      <button
+        onClick={() => signInWithProvider("github")}
+        className="w-full flex items-center justify-center gap-2.5 rounded-lg p-3.5 bg-primary text-white border border-primary"
+      >
+        Continue with GitHub
+      </button>
+    </div>
   );
 };
 
-export default SocialSignIn;
+export default SocialSignUp;
