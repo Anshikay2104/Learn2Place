@@ -54,7 +54,7 @@ export default function StudentProfilePage() {
   const [darkMode, setDarkMode] = useState(false);
 
   return (
-    <div className={`${darkMode ? "bg-gray-900 text-white" : "bg-gray-50 text-gray-900"} min-h-screen pt-48 px-4 sm:px-6 lg:px-8 transition-all`}>
+    <div className={`${darkMode ? "bg-gray-900 text-white" : "bg-gray-50 text-gray-900"} min-h-screen pt-24 px-4 sm:px-6 lg:px-8 transition-all`}>
       <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
 
         {/* === LEFT COLUMN: STUDENT CARD === */}

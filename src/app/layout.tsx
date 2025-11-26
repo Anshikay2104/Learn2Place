@@ -1,10 +1,11 @@
-import { Poppins } from "next/font/google";
-import "./globals.css";
+"use client";
 
+import { Poppins } from "next/font/google";
+import { ThemeProvider } from "next-themes";
 import Header from "@/components/Layout/Header";
 import Footer from "@/components/Layout/Footer";
 import ScrollToTop from "@/components/ScrollToTop";
-import { ThemeProvider } from "next-themes";
+import "./globals.css";
 
 const font = Poppins({
   subsets: ["latin"],
@@ -24,11 +25,13 @@ export default function RootLayout({
           enableSystem={true}
           defaultTheme="light"
         >
-          {/* GLOBAL HEADER */}
+          {/* GLOBAL HEADER (fixed) */}
           <Header />
 
-          {/* PAGE CONTENT */}
-          <main className="min-h-screen">{children}</main>
+          {/* ✅ PAGE CONTENT OFFSET */}
+          <main className="min-h-screen pt-20">
+            {children}
+          </main>
 
           {/* GLOBAL FOOTER */}
           <Footer />

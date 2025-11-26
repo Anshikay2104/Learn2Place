@@ -7,36 +7,72 @@ import { Icon } from "@iconify/react";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 
+//initials
+
+const getInitials = (name: string) => {
+  const parts = name.split(" ");
+  return parts.length >= 2
+    ? `${parts[0][0]}${parts[1][0]}`
+    : parts[0][0];
+};
+
+const avatarColors = [
+  "bg-indigo-600",
+  "bg-pink-500",
+  "bg-purple-600",
+  "bg-blue-500",
+];
+
 // Testimonial data
+
 const testimonialData = [
   {
     id: 1,
-    name: "Priya Sharma",
-    profession: "Computer Science Student",
+    name: "Ananya Gupta",
+    profession: "Final Year CSE Student",
     comment:
-      "This platform helped me connect with mentors who guided me through placements. Great experience!",
-    rating: 4.5,
-    imgSrc: "/images/testimonial/userone.png",
+      "Learn2Place made placements feel less overwhelming. Reading real interview experiences from alumni helped me prepare with confidence and clarity.",
+    rating: 5,
+    imgSrc: "/images/testimonial/girl1.png",
   },
   {
     id: 2,
-    name: "Rahul Verma",
-    profession: "ECE Student",
+    name: "Riya Mehta",
+    profession: "3rd Year IT Student",
     comment:
-      "I loved how interactive the courses were! I could easily follow along and ask doubts.",
-    rating: 5,
-    imgSrc: "/images/testimonial/usertwo.png",
+      "The platform bridges the gap between students and alumni so well. I finally understood what companies actually expect during interviews.",
+    rating: 4.5,
+    imgSrc: "/images/testimonial/girl2.png",
   },
   {
     id: 3,
-    name: "Aditi Singh",
-    profession: "Final Year B.Tech",
+    name: "Sneha Kulkarni",
+    profession: "Computer Engineering Student",
     comment:
-      "The alumni sessions were insightful. Helped me prepare for interviews efficiently!",
+      "The interview tips shared by seniors were extremely practical. It saved me so much time during my placement preparation.",
     rating: 4,
-    imgSrc: "/images/testimonial/userthree.png",
+    imgSrc: "/images/testimonial/girl3.png",
+  },
+  {
+    id: 4,
+    name: "Pooja Verma",
+    profession: "Electronics & Communication Student",
+    comment:
+      "As someone who was unsure about placements, Learn2Place gave me real insights and stories that motivated me to push myself.",
+    rating: 5,
+    imgSrc: "/images/testimonial/girl4.png",
+  },
+  {
+    id: 5,
+    name: "Kavya Nair",
+    profession: "B.Tech Student",
+    comment:
+      "I loved how honest and detailed the alumni experiences were. It feels like seniors are guiding us step by step.",
+    rating: 4.5,
+    imgSrc: "/images/testimonial/girl5.png",
   },
 ];
+
 
 export default function Testimonial() {
   const settings = {
@@ -100,18 +136,18 @@ export default function Testimonial() {
         </h2>
 
         <Slider {...settings}>
-          {testimonialData.map((item) => (
+          {testimonialData.map((item, index) => {
+            const colorClass = avatarColors[index % avatarColors.length];
+            return (
             <div key={item.id} className="px-3 h-full">
               <div className="bg-white rounded-2xl p-6 shadow-md hover:shadow-lg transition-shadow duration-300 h-full flex flex-col justify-between">
                 <div className="flex flex-col items-center text-center">
-                  <div className="w-24 h-24 mb-4 relative rounded-full overflow-hidden">
-                    <Image
-                      src={item.imgSrc}
-                      alt={item.name}
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
+                    <div
+                      className={`w-16 h-16 mb-3 rounded-full ${colorClass} flex items-center justify-center text-white text-lg font-semibold shadow-md`}
+                    >
+                      {getInitials(item.name)}
+                    </div>
+
                   <p className="text-gray-600 italic mb-4 h-24 overflow-hidden">
                     "{item.comment}"
                   </p>
@@ -123,7 +159,8 @@ export default function Testimonial() {
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </Slider>
       </div>
     </section>
