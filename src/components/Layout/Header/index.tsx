@@ -51,24 +51,20 @@ const Header = () => {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-const logout = async () => {
-  const { error } = await supabase.auth.signOut();
+  const logout = async () => {
+    const { error } = await supabase.auth.signOut();
 
-  if (error) {
-    toast.error("Logout failed. Try again.");
-    return;
-  }
+    if (error) {
+      toast.error("Logout failed. Try again.");
+      return;
+    }
 
-  toast.success("Logged out!");
+    toast.success("Logged out!");
+    setUser(null);
 
-  // Force immediate client refresh
-  setUser(null); // instantly remove avatar
-  
-  // Refresh Next.js router cache
-  router.replace("/");
-  router.refresh();
-};
-
+    router.replace("/");
+    router.refresh();
+  };
 
   const getInitials = () => {
     const name = user?.user_metadata?.name || user?.email || "";
@@ -87,50 +83,49 @@ const logout = async () => {
       }`}
     >
       <div className="container mx-auto max-w-screen-xl flex items-center justify-between px-4">
-        {/* LOGO */}
         <Logo />
 
         {/* DESKTOP NAV */}
         <nav className="hidden lg:flex items-center gap-10 ml-6">
-  {headerData
-    .filter(item => !(item.label === "Profile" && !user))
-    .map((item, index) => (
-      <HeaderLink key={index} item={item} />
-    ))}
-</nav>
-
+          {headerData
+            .filter((item) => item.label !== "Profile") // remove profile item completely
+            .map((item, index) => (
+              <HeaderLink key={index} item={item} />
+            ))}
+        </nav>
 
         {/* RIGHT SIDE */}
         <div className="flex items-center gap-4">
           {user ? (
-            // AVATAR + DROPDOWN
-            <div className="relative" ref={dropdownRef}>
-              <div
-                className="w-9 h-9 rounded-full bg-purple-600 text-white flex items-center justify-center cursor-pointer font-semibold text-sm"
-                onClick={() => setDropdownOpen((prev) => !prev)}
-              >
-                {getInitials()}
-              </div>
-
-              {dropdownOpen && (
-                <div className="absolute right-0 mt-2 w-40 bg-white rounded-md shadow p-2 z-50">
-                  <Link
-                    href="/profile"
-                    className="block px-4 py-2 hover:bg-gray-100 rounded-md"
-                  >
-                    My Profile
-                  </Link>
-                  <button
-                    onClick={logout}
-                    className="w-full px-4 py-2 text-left text-red-600 hover:bg-gray-100 rounded-md"
-                  >
-                    Logout
-                  </button>
+            <>
+              {/* Avatar + Dropdown */}
+              <div className="relative" ref={dropdownRef}>
+                <div
+                  className="w-9 h-9 rounded-full bg-purple-600 text-white flex items-center justify-center cursor-pointer font-semibold text-sm"
+                  onClick={() => setDropdownOpen((prev) => !prev)}
+                >
+                  {getInitials()}
                 </div>
-              )}
-            </div>
+
+                {dropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-40 bg-white rounded-md shadow p-2 z-50">
+                    <Link
+                      href="/profile"
+                      className="block px-4 py-2 hover:bg-gray-100 rounded-md"
+                    >
+                      My Profile
+                    </Link>
+                    <button
+                      onClick={logout}
+                      className="w-full px-4 py-2 text-left text-red-600 hover:bg-gray-100 rounded-md"
+                    >
+                      Logout
+                    </button>
+                  </div>
+                )}
+              </div>
+            </>
           ) : (
-            // SIGNIN / SIGNUP BUTTONS
             <>
               <Link
                 href="/auth/signin"
@@ -138,6 +133,7 @@ const logout = async () => {
               >
                 Sign In
               </Link>
+
               <Link
                 href="/auth/signup"
                 className="hidden lg:block border border-primary text-primary px-5 py-2 rounded-full"
@@ -147,7 +143,7 @@ const logout = async () => {
             </>
           )}
 
-          {/* MOBILE MENU BUTTON */}
+          {/* Mobile menu button */}
           <button
             className="lg:hidden p-2"
             onClick={() => setNavbarOpen(!navbarOpen)}
@@ -162,21 +158,24 @@ const logout = async () => {
       {/* MOBILE NAV */}
       {navbarOpen && (
         <div className="lg:hidden fixed top-0 right-0 h-full w-72 bg-white shadow-lg p-6 z-50">
-          {headerData.map((item, index) => (
-            <MobileHeaderLink key={index} item={item} />
-          ))}
+          {headerData
+            .filter((item) => item.label !== "Profile") // also remove here
+            .map((item, index) => (
+              <MobileHeaderLink key={index} item={item} />
+            ))}
 
           {user ? (
             <div className="mt-6">
-              <div className="w-12 h-12 bg-purple-600 rounded-full mx-auto text-white flex items-center justify-center font-bold text-lg mb-4">
-                {getInitials()}
-              </div>
-              <Link
-                href="/profile"
+              <button
+                onClick={() => {
+                  setDropdownOpen(false);
+                  router.push("/profile");
+                }}
                 className="block text-center border px-4 py-2 rounded-lg mb-2"
               >
                 My Profile
-              </Link>
+              </button>
+
               <button
                 onClick={logout}
                 className="w-full bg-red-500 text-white py-2 rounded-lg"

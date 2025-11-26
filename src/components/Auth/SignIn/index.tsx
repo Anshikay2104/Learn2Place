@@ -67,7 +67,7 @@ const SignInModal = () => {
     }
 
     toast.success("Welcome!");
-    router.push(profile.role === "student" ? "/stuProfile" : "/profile");
+    router.push(profile.role === "student" ? "/studentprofile" : "/alumniprofile");
 
     setLoading(false);
   };

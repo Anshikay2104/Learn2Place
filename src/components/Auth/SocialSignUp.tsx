@@ -8,24 +8,27 @@ const SocialSignUp = () => {
   const signInWithGoogle = async () => {
     const role = localStorage.getItem("signup_role");
     const verified = localStorage.getItem("signup_alumni_verified");
+    const alumniEmail = localStorage.getItem("signup_alumni_email");
 
     if (!role) {
       alert("Please select a role first.");
       return;
     }
 
+    // Alumni must verify before Google OAuth
     if (role === "alumni" && verified !== "true") {
       alert("Please verify your alumni email first.");
       return;
     }
 
-    // Mark as signup mode so callback knows this is a signup
+    // Mark that this is a Google-based signup flow
     localStorage.setItem("signup_mode", "true");
 
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: `${location.origin}/auth/callback`,
+        queryParams: { prompt: "select_account" },
       },
     });
   };

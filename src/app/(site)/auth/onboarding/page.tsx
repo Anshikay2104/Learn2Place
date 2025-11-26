@@ -54,7 +54,7 @@ export default function OnboardingPage() {
     });
 
     toast.success("Welcome Student!");
-    router.push("/stuProfile");
+    router.push("/studentprofile");
   };
 
   const verifyAlumni = async () => {

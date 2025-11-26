@@ -52,7 +52,7 @@ const SignUp = () => {
         .single();
 
       if (error || !data) {
-        setAlumniError("This email is not recognized as alumni.");
+        setAlumniError("This email is not recognized as alumni from CDC database.");
         return;
       }
 

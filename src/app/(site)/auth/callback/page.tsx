@@ -20,6 +20,7 @@ export default function AuthCallbackPage() {
   const [showAlumniModal, setShowAlumniModal] = useState(false);
   const [alumniError, setAlumniError] = useState("");
   const [alumniLoading, setAlumniLoading] = useState(false);
+
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -37,28 +38,25 @@ export default function AuthCallbackPage() {
       const currentUser = session.user;
 
       if (!currentUser.email) {
-        toast.error("Google did not return an email. Try again.");
+        toast.error("Google did not return an email.");
         await supabase.auth.signOut();
         router.push("/auth/signin");
         return;
       }
 
       const lowerEmail = currentUser.email.toLowerCase();
-
       setUser(currentUser);
 
-      /* 1️⃣ DOES PROFILE ALREADY EXIST? */
-      const { exists, profile } = await checkProfileExists(
-        supabase,
-        lowerEmail
-      );
+      /* 1️⃣ CHECK IF PROFILE ALREADY EXISTS */
+      const { exists, profile } = await checkProfileExists(supabase, lowerEmail);
+
       if (exists) {
         toast.success("Welcome back!");
-        router.push(profile.role === "student" ? "/stuProfile" : "/profile");
+        router.push(profile.role === "student" ? "/studentprofile" : "/alumniprofile");
         return;
       }
 
-      /* 2️⃣ IS THIS GOOGLE SIGNUP FLOW? */
+      /* 2️⃣ IS THIS THE GOOGLE SIGNUP FLOW? */
       const signupMode = localStorage.getItem("signup_mode");
 
       if (signupMode === "true") {
@@ -76,10 +74,20 @@ export default function AuthCallbackPage() {
           return;
         }
 
-        /* 2A — Alumni special rules */
+        /* 2A — STUDENT EMAIL MUST BE INSTITUTIONAL */
+        if (selectedRole === "student") {
+          if (!lowerEmail.endsWith("@modyuniversity.ac.in")) {
+            toast.error("Students must use @modyuniversity.ac.in email.");
+            await supabase.auth.signOut();
+            window.location.href = "/auth/signin?invalid_student_email=true";
+            return;
+          }
+        }
+
+        /* 2B — ALUMNI MUST MATCH VERIFIED EMAIL */
         if (selectedRole === "alumni") {
           if (!alumniVerified || !verifiedAlumniEmail) {
-            toast.error("Please verify alumni email again.");
+            toast.error("Please verify your alumni email again.");
             await supabase.auth.signOut();
             router.push("/auth/signup");
             return;
@@ -87,9 +95,8 @@ export default function AuthCallbackPage() {
 
           if (lowerEmail !== verifiedAlumniEmail.toLowerCase()) {
             toast.error(
-              `You must sign in with your verified alumni email: ${verifiedAlumniEmail}`
+              `Please sign in using your verified alumni email: ${verifiedAlumniEmail}`
             );
-
             await supabase.auth.signOut();
             window.location.href = `/auth/signin?mismatch=${encodeURIComponent(
               verifiedAlumniEmail
@@ -104,11 +111,10 @@ export default function AuthCallbackPage() {
           selectedRole as "student" | "alumni",
           selectedRole === "alumni"
         );
-
         return;
       }
 
-      /* 4️⃣ NEW GOOGLE LOGIN → Show role modal */
+      /* 4️⃣ NEW GOOGLE LOGIN — NO PROFILE—ASK ROLE */
       setShowRoleModal(true);
       setLoading(false);
     };
@@ -116,16 +122,28 @@ export default function AuthCallbackPage() {
     run();
   }, []);
 
-  /* ROLE SELECTED */
+  /* ================= ROLE SELECT HANDLER ================= */
   const handleRoleSelect = async (selectedRole: "student" | "alumni") => {
-    if (selectedRole === "alumni") {
-      setShowAlumniModal(true);
-    } else {
-      await createProfile(user, selectedRole, false);
+    const email = user?.email?.toLowerCase() || "";
+
+    /* STUDENT RULE — MUST MATCH DOMAIN */
+    if (selectedRole === "student") {
+      if (!email.endsWith("@modyuniversity.ac.in")) {
+        toast.error("Use your institutional ID (@modyuniversity.ac.in).");
+        await supabase.auth.signOut();
+        router.push("/auth/signin");
+        return;
+      }
+
+      await createProfile(user, "student", false);
+      return;
     }
+
+    /* ALUMNI → SHOW EMAIL VERIFICATION MODAL */
+    setShowAlumniModal(true);
   };
 
-  /* VERIFY ALUMNI EMAIL */
+  /* ================= VERIFY ALUMNI EMAIL ================= */
   const verifyAlumni = async () => {
     setAlumniError("");
 
@@ -139,10 +157,7 @@ export default function AuthCallbackPage() {
       return;
     }
 
-    if (
-      alumniEmail.trim().toLowerCase() !==
-      user.email.trim().toLowerCase()
-    ) {
+    if (alumniEmail.trim().toLowerCase() !== user.email.toLowerCase()) {
       setAlumniError(`Use the same email you logged in with: ${user.email}`);
       return;
     }
@@ -156,18 +171,18 @@ export default function AuthCallbackPage() {
       .maybeSingle();
 
     if (!data) {
-      setAlumniError("Email not listed as alumni.");
+      setAlumniError("Email is not listed as alumni.");
       setAlumniLoading(false);
       return;
     }
 
-    toast.success("Alumni verified!");
+    toast.success("Alumni email verified!");
     setShowAlumniModal(false);
 
     await createProfile(user, "alumni", true);
   };
 
-  /* CREATE PROFILE */
+  /* ================= CREATE PROFILE ================= */
   const createProfile = async (
     currentUser: any,
     role: "student" | "alumni",
@@ -182,14 +197,13 @@ export default function AuthCallbackPage() {
       is_verified_alumni: alumniVerified,
     });
 
-    /* CLEANUP */
+    /* cleanup */
     localStorage.removeItem("signup_role");
     localStorage.removeItem("signup_alumni_verified");
     localStorage.removeItem("signup_alumni_email");
 
     toast.success("Profile created!");
-
-    router.push(role === "student" ? "/stuProfile" : "/profile");
+    router.push(role === "student" ? "/studentprofile" : "/alumniprofile");
   };
 
   return (
@@ -197,7 +211,10 @@ export default function AuthCallbackPage() {
       {loading && "Processing..."}
 
       {showRoleModal && (
-        <RoleSelectionModal onSelect={handleRoleSelect} onClose={() => {}} />
+        <RoleSelectionModal
+          onSelect={handleRoleSelect}
+          onClose={() => {}}
+        />
       )}
 
       {showAlumniModal && (

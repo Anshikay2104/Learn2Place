@@ -13,6 +13,7 @@ import RoleSelectionModal from "@/components/Auth/RoleSelectionModal";
 import AlumniEmailModal from "@/components/Auth/AlumniEmailModal";
 import SocialSignUp from "@/components/Auth/SocialSignUp";
 import { checkProfileExists } from "@/utils/checkProfileExists";
+import { isInstitutionalEmail } from "@/utils/checkStudentInstitutionalEmail";
 
 const SignUp = () => {
   const router = useRouter();
@@ -79,7 +80,7 @@ const SignUp = () => {
   /* ---------------- SUBMIT SIGNUP ---------------- */
   const handleSubmit = async (e: any) => {
     e.preventDefault();
-  setLoading(true);
+    setLoading(true);
 
     if (!role) {
       toast.error("Please select a role first.");
@@ -92,7 +93,14 @@ const SignUp = () => {
 
     const lowerEmail = email.trim().toLowerCase();
 
-    /* UNIQUE PROFILE CHECK */
+    /* 1️⃣ STUDENT EMAIL DOMAIN CHECK */
+    if (role === "student" && !isInstitutionalEmail(lowerEmail)) {
+      toast.error("Students must sign up using institutional email (@modyuniversity.ac.in)");
+      setLoading(false);
+      return;
+    }
+
+    /* 2️⃣ UNIQUE PROFILE CHECK */
     const { exists } = await checkProfileExists(supabase, lowerEmail);
     if (exists) {
       toast.error("This email is already registered. Please sign in.");
@@ -100,7 +108,7 @@ const SignUp = () => {
       return;
     }
 
-    /* Alumni strict rule */
+    /* 3️⃣ ALUMNI STRICT RULE */
     if (role === "alumni") {
       if (!alumniVerified) {
         toast.error("Please verify your alumni email.");
@@ -109,13 +117,13 @@ const SignUp = () => {
       }
 
       if (lowerEmail !== alumniEmail.trim().toLowerCase()) {
-        toast.error(`You must sign up using your verified alumni email: ${alumniEmail}`);
+        toast.error(`Use your verified alumni email: ${alumniEmail}`);
         setLoading(false);
         return;
       }
     }
 
-    /* CREATE AUTH USER */
+    /* 4️⃣ CREATE AUTH USER */
     const { data, error } = await supabase.auth.signUp({
       email: lowerEmail,
       password,
@@ -123,9 +131,7 @@ const SignUp = () => {
         data: { full_name: name, role },
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
-      emailRedirectTo: `${window.location.origin}/auth/callback`,
-    },
-  });
+    });
 
     if (error) {
       toast.error(error.message);
@@ -140,7 +146,7 @@ const SignUp = () => {
       return;
     }
 
-    /* CREATE PROFILE */
+    /* 5️⃣ CREATE PROFILE */
     await supabase.from("profiles").insert({
       id: user.id,
       full_name: name,
@@ -149,15 +155,17 @@ const SignUp = () => {
       is_verified_alumni: role === "alumni",
     });
 
-    toast.success("Account created! Check your email for verification.");
+    toast.success("Account created! Check your email to verify.");
     router.push("/auth/signin");
   };
-
 
   return (
     <div className="fixed inset-0 z-[9999] bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm">
       {role === null && (
-        <RoleSelectionModal onSelect={handleRoleSelect} onClose={() => router.push("/")} />
+        <RoleSelectionModal
+          onSelect={handleRoleSelect}
+          onClose={() => router.push("/")}
+        />
       )}
 
       {showAlumniModal && (
@@ -173,7 +181,12 @@ const SignUp = () => {
 
       {(role === "student" || alumniVerified) && (
         <div className="bg-white w-full max-w-md rounded-2xl p-8 shadow-xl relative animate-fadeIn">
-          <button className="absolute right-4 top-4 text-gray-600 text-2xl hover:text-black" onClick={() => router.push("/")}>×</button>
+          <button
+            className="absolute right-4 top-4 text-gray-600 text-2xl hover:text-black"
+            onClick={() => router.push("/")}
+          >
+            ×
+          </button>
 
           <div className="w-32 mx-auto mb-6">
             <Logo />
@@ -184,7 +197,13 @@ const SignUp = () => {
           <div className="text-center my-6 text-gray-500">OR</div>
 
           <form onSubmit={handleSubmit}>
-            <input type="text" name="name" placeholder="Full Name" required className="w-full border px-4 py-3 rounded-lg mb-3" />
+            <input
+              type="text"
+              name="name"
+              placeholder="Full Name"
+              required
+              className="w-full border px-4 py-3 rounded-lg mb-3"
+            />
 
             <input
               type="email"
@@ -196,7 +215,13 @@ const SignUp = () => {
               className="w-full border px-4 py-3 rounded-lg mb-3"
             />
 
-            <input type="password" name="password" placeholder="Password" required className="w-full border px-4 py-3 rounded-lg mb-6" />
+            <input
+              type="password"
+              name="password"
+              placeholder="Password"
+              required
+              className="w-full border px-4 py-3 rounded-lg mb-6"
+            />
 
             <button className="w-full bg-primary text-white py-3 rounded-lg flex justify-center">
               {loading ? <Loader /> : "Sign Up"}
@@ -205,7 +230,9 @@ const SignUp = () => {
 
           <p className="text-center mt-4 text-gray-700">
             Already have an account?
-            <Link href="/auth/signin" className="text-primary ml-1">Sign In</Link>
+            <Link href="/auth/signin" className="text-primary ml-1">
+              Sign In
+            </Link>
           </p>
         </div>
       )}
