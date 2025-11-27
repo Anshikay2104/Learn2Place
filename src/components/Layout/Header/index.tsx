@@ -79,11 +79,14 @@ const Header = () => {
   return (
     <header
       className={`fixed top-0 z-40 w-full bg-white border-b transition-all duration-200 ${
-        sticky ? "py-2 shadow-sm" : "py-3"
+        sticky ? "py-4 shadow-sm" : "py-6"
       }`}
     >
-      <div className="container mx-auto max-w-screen-xl flex items-center justify-between px-4">
-        <Logo />
+      <div className="container mx-auto max-w-screen-xl flex items-center justify-between px-6">
+        <div className="scale-110">
+            <Logo />
+      </div>
+
 
         {/* DESKTOP NAV */}
         <nav className="hidden lg:flex items-center gap-10 ml-6">
@@ -101,7 +104,7 @@ const Header = () => {
               {/* Avatar + Dropdown */}
               <div className="relative" ref={dropdownRef}>
                 <div
-                  className="w-9 h-9 rounded-full bg-purple-600 text-white flex items-center justify-center cursor-pointer font-semibold text-sm"
+                  className="w-9 h-9 rounded-full bg-purple-600 text-white flex items-center justify-center cursor-pointer font-bold text-sm"
                   onClick={() => setDropdownOpen((prev) => !prev)}
                 >
                   {getInitials()}
@@ -129,7 +132,7 @@ const Header = () => {
             <>
               <Link
                 href="/auth/signin"
-                className="hidden lg:block bg-primary text-white px-5 py-2 rounded-full"
+                className="hidden lg:block bg-primary text-white px-6 py-3 rounded-full text-base font-bold"
               >
                 Sign In
               </Link>
