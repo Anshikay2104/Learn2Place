@@ -11,14 +11,14 @@ const NotFound = () => {
           <div className="w-full px-4 md:w-5/12 lg:w-6/12">
             <div className="relative mx-auto aspect-[129/138] max-w-[357px] text-center">
               <Image
-                src= {`${getImagePrefix()}images/404.svg`}
-                alt="image"
-                width={0}
-                height={0}
-                layout="responsive"
+                src={`${getImagePrefix()}images/404.svg`}
+                alt="404 illustration"
+                width={800}
+                height={600}
+                className="mx-auto w-full h-auto"
                 quality={100}
-                className="mx-auto max-w-full"
               />
+
             </div>
           </div>
           <div className="w-full px-4 md:w-7/12 lg:w-6/12 xl:w-5/12">

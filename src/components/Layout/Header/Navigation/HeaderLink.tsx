@@ -1,49 +1,74 @@
 "use client";
+
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+
 import { HeaderItem } from "../../../../types/menu";
-import { usePathname } from "next/navigation";
 
 const HeaderLink: React.FC<{ item: HeaderItem }> = ({ item }) => {
+  const path = usePathname();
+  const router = useRouter();
+  const supabase = createClientComponentClient();
+
   const [submenuOpen, setSubmenuOpen] = useState(false);
-  const path = usePathname(); // Get the current path from Next.js router
   const [isActive, setIsActive] = useState(false);
 
-  // Check if the current path matches the link or any submenu link
+  // ✅ Check active link / submenu
   useEffect(() => {
-    const isLinkActive = (path === item.href || (item.submenu && item.submenu.some(subItem => path === subItem.href))) ?? false;
-    setIsActive(isLinkActive); // Ensure isLinkActive is always a boolean
+    const isLinkActive =
+      path === item.href ||
+      (item.submenu?.some((subItem) => path === subItem.href) ?? false);
+
+    setIsActive(isLinkActive);
   }, [path, item.href, item.submenu]);
 
-  const handleMouseEnter = () => {
-    if (item.submenu) {
-      setSubmenuOpen(true);
-    }
-  };
+  // ✅ Protected navigation handler
+  const handleProtectedClick = async (
+    e: React.MouseEvent,
+    href: string
+  ) => {
+    e.preventDefault();
 
-  const handleMouseLeave = () => {
-    setSubmenuOpen(false);
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    // 🔐 Redirect if not logged in
+    if (!user) {
+      router.push("/auth/signup");
+      return;
+    }
+
+    router.push(href);
   };
 
   return (
     <div
       className="relative"
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      onMouseEnter={() => item.submenu && setSubmenuOpen(true)}
+      onMouseLeave={() => setSubmenuOpen(false)}
     >
+      {/* MAIN NAV LINK */}
       <Link
         href={item.href}
-        className={`text-lg flex hover:text-black capitalized relative ${isActive
+        onClick={(e) => handleProtectedClick(e, item.href)}
+        className={`text-lg font-semibold flex items-center gap-1 capitalize relative transition ${
+          isActive
             ? "text-black after:absolute after:w-8 after:h-1 after:bg-primary after:rounded-full after:-bottom-1"
-            : "text-grey"
-          }`}
+            : "text-gray-500 hover:text-black"
+        }`}
+        title="Sign up to access this feature"
       >
         {item.label}
+
+        {/* ▼ Dropdown arrow */}
         {item.submenu && (
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            width="1.5em"
-            height="1.5em"
+            width="1.25em"
+            height="1.25em"
             viewBox="0 0 24 24"
           >
             <path
@@ -51,29 +76,31 @@ const HeaderLink: React.FC<{ item: HeaderItem }> = ({ item }) => {
               stroke="currentColor"
               strokeLinecap="round"
               strokeLinejoin="round"
-              strokeWidth="1.5"
-              d="m7 10l5 5l5-5"
+              strokeWidth="2"
+              d="m6 9l6 6l6-6"
             />
           </svg>
         )}
       </Link>
 
-      {submenuOpen && (
-        <div
-          className={`absolute py-2 left-0 mt-0.5 w-60 bg-white dark:bg-darklight dark:text-white shadow-lg rounded-lg `}
-          data-aos="fade-up"
-          data-aos-duration="500"
-        >
-          {item.submenu?.map((subItem, index) => {
-            const isSubItemActive = path === subItem.href; // Check if the submenu item is active
+      {/* SUBMENU */}
+      {submenuOpen && item.submenu && (
+        <div className="absolute left-0 mt-2 w-60 bg-white shadow-lg rounded-lg py-2 z-50">
+          {item.submenu.map((subItem, index) => {
+            const isSubActive = path === subItem.href;
+
             return (
               <Link
                 key={index}
                 href={subItem.href}
-                className={`block px-4 py-2 ${isSubItemActive
+                onClick={(e) =>
+                  handleProtectedClick(e, subItem.href)
+                }
+                className={`block px-4 py-2 transition ${
+                  isSubActive
                     ? "bg-primary text-white"
-                    : "text-black dark:text-white hover:bg-primary"
-                  }`}
+                    : "text-gray-700 hover:bg-primary hover:text-white"
+                }`}
               >
                 {subItem.label}
               </Link>

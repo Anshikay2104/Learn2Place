@@ -9,8 +9,8 @@ const Logo: React.FC = () => {
       className="flex items-center mr-4"
     >
       <div className="relative w-[120px] h-[50px] md:w-[150px] md:h-[60px]">
-        <Image
-          src={`${getImagePrefix()}images/logo/logo.svg`}
+         <Image
+          src="/images/logo/logo.svg"
           alt="logo"
           fill
           className="object-contain"

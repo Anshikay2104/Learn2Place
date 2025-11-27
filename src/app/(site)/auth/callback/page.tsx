@@ -23,6 +23,18 @@ export default function AuthCallbackPage() {
 
   const [loading, setLoading] = useState(true);
 
+  // ✅ Helper: redirect safely after auth
+  const redirectAfterAuth = (fallbackRoute: string) => {
+    const redirectTo = localStorage.getItem("redirectAfterAuth");
+
+    if (redirectTo) {
+      localStorage.removeItem("redirectAfterAuth");
+      router.push(redirectTo);
+    } else {
+      router.push(fallbackRoute);
+    }
+  };
+
   useEffect(() => {
     const run = async () => {
       const {
@@ -48,15 +60,22 @@ export default function AuthCallbackPage() {
       setUser(currentUser);
 
       /* 1️⃣ CHECK IF PROFILE ALREADY EXISTS */
-      const { exists, profile } = await checkProfileExists(supabase, lowerEmail);
+      const { exists, profile } = await checkProfileExists(
+        supabase,
+        lowerEmail
+      );
 
       if (exists) {
         toast.success("Welcome back!");
-        router.push(profile.role === "student" ? "/studentprofile" : "/alumniprofile");
+        redirectAfterAuth(
+          profile.role === "student"
+            ? "/studentprofile"
+            : "/alumniprofile"
+        );
         return;
       }
 
-      /* 2️⃣ IS THIS THE GOOGLE SIGNUP FLOW? */
+      /* 2️⃣ GOOGLE SIGNUP FLOW */
       const signupMode = localStorage.getItem("signup_mode");
 
       if (signupMode === "true") {
@@ -74,17 +93,24 @@ export default function AuthCallbackPage() {
           return;
         }
 
-        /* 2A — STUDENT EMAIL MUST BE INSTITUTIONAL */
-        if (selectedRole === "student") {
-          if (!lowerEmail.endsWith("@modyuniversity.ac.in")) {
-            toast.error("Students must use @modyuniversity.ac.in email.");
-            await supabase.auth.signOut();
-            window.location.href = "/auth/signin?invalid_student_email=true";
-            return;
-          }
+        /* STUDENT DOMAIN CHECK */
+        if (
+          selectedRole === "student" &&
+          !lowerEmail.endsWith("@modyuniversity.ac.in")
+        ) {
+          await supabase.auth.signOut();
+
+          const msg = encodeURIComponent(
+            "Students must sign up using institutional email (@modyuniversity.ac.in)"
+          );
+
+          window.location.href = `/auth/signup?error=${msg}`;
+          return;
         }
 
-        /* 2B — ALUMNI MUST MATCH VERIFIED EMAIL */
+
+
+        /* ALUMNI VERIFICATION CHECK */
         if (selectedRole === "alumni") {
           if (!alumniVerified || !verifiedAlumniEmail) {
             toast.error("Please verify your alumni email again.");
@@ -98,14 +124,11 @@ export default function AuthCallbackPage() {
               `Please sign in using your verified alumni email: ${verifiedAlumniEmail}`
             );
             await supabase.auth.signOut();
-            window.location.href = `/auth/signin?mismatch=${encodeURIComponent(
-              verifiedAlumniEmail
-            )}`;
+            router.push("/auth/signin");
             return;
           }
         }
 
-        /* 3️⃣ CREATE PROFILE */
         await createProfile(
           currentUser,
           selectedRole as "student" | "alumni",
@@ -114,7 +137,7 @@ export default function AuthCallbackPage() {
         return;
       }
 
-      /* 4️⃣ NEW GOOGLE LOGIN — NO PROFILE—ASK ROLE */
+      /* 3️⃣ NEW GOOGLE LOGIN → ASK ROLE */
       setShowRoleModal(true);
       setLoading(false);
     };
@@ -122,28 +145,29 @@ export default function AuthCallbackPage() {
     run();
   }, []);
 
-  /* ================= ROLE SELECT HANDLER ================= */
+  /* ================= ROLE SELECT ================= */
   const handleRoleSelect = async (selectedRole: "student" | "alumni") => {
     const email = user?.email?.toLowerCase() || "";
 
-    /* STUDENT RULE — MUST MATCH DOMAIN */
-    if (selectedRole === "student") {
-      if (!email.endsWith("@modyuniversity.ac.in")) {
-        toast.error("Use your institutional ID (@modyuniversity.ac.in).");
-        await supabase.auth.signOut();
-        router.push("/auth/signin");
-        return;
-      }
+    if (
+      selectedRole === "student" &&
+      !email.endsWith("@modyuniversity.ac.in")
+    ) {
+      toast.error("Use your institutional ID (@modyuniversity.ac.in).");
+      await supabase.auth.signOut();
+      router.push("/auth/signin");
+      return;
+    }
 
+    if (selectedRole === "student") {
       await createProfile(user, "student", false);
       return;
     }
 
-    /* ALUMNI → SHOW EMAIL VERIFICATION MODAL */
     setShowAlumniModal(true);
   };
 
-  /* ================= VERIFY ALUMNI EMAIL ================= */
+  /* ================= VERIFY ALUMNI ================= */
   const verifyAlumni = async () => {
     setAlumniError("");
 
@@ -152,13 +176,8 @@ export default function AuthCallbackPage() {
       return;
     }
 
-    if (!user?.email) {
-      setAlumniError("Google did not return an email.");
-      return;
-    }
-
-    if (alumniEmail.trim().toLowerCase() !== user.email.toLowerCase()) {
-      setAlumniError(`Use the same email you logged in with: ${user.email}`);
+    if (alumniEmail.toLowerCase() !== user?.email?.toLowerCase()) {
+      setAlumniError(`Use the same email you logged in with.`);
       return;
     }
 
@@ -178,7 +197,6 @@ export default function AuthCallbackPage() {
 
     toast.success("Alumni email verified!");
     setShowAlumniModal(false);
-
     await createProfile(user, "alumni", true);
   };
 
@@ -203,7 +221,9 @@ export default function AuthCallbackPage() {
     localStorage.removeItem("signup_alumni_email");
 
     toast.success("Profile created!");
-    router.push(role === "student" ? "/studentprofile" : "/alumniprofile");
+    redirectAfterAuth(
+      role === "student" ? "/studentprofile" : "/alumniprofile"
+    );
   };
 
   return (
@@ -211,10 +231,7 @@ export default function AuthCallbackPage() {
       {loading && "Processing..."}
 
       {showRoleModal && (
-        <RoleSelectionModal
-          onSelect={handleRoleSelect}
-          onClose={() => {}}
-        />
+        <RoleSelectionModal onSelect={handleRoleSelect} onClose={() => {}} />
       )}
 
       {showAlumniModal && (
