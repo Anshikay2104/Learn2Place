@@ -22,17 +22,17 @@ type ExperienceRow = {
 };
 
 type Props = {
-  params: { company: string; year: string };
+  params: { slug: string; year: string };
 };
 
 export default async function ExperiencePage({ params }: Props) {
-  const { company, year } = params;
+  const { slug, year } = params;
 
   // Fetch matching company by slug
   const { data: companyData, error: companyError } = await supabase
     .from("companies")
     .select("name, logo_url")
-    .eq("slug", company)
+    .eq("slug", slug)
     .single();
 
   if (companyError || !companyData) {
@@ -57,7 +57,7 @@ export default async function ExperiencePage({ params }: Props) {
         avatar_url
       )
     `)
-    .eq("company_id", company) // company = slug
+    .eq("company_id", slug) // slug = company identifier
     .eq("year", Number(year))
     .order("created_at", { ascending: false });
 
