@@ -9,7 +9,7 @@ import Logo from "@/components/Layout/Header/Logo";
 import SocialSignIn from "../SocialSignIn";
 import Loader from "@/components/Common/Loader";
 
-const SignInModal = () => {
+export default function SignInModal() {
   const router = useRouter();
   const supabase = createClientComponentClient();
 
@@ -23,57 +23,66 @@ const SignInModal = () => {
     setLoading(true);
     setErrorMessage("");
 
-    let data, error;
+    // Step 1: Sign in
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-    try {
-      const result = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      data = result.data;
-      error = result.error;
-    } catch {
-      setErrorMessage("Invalid email or password.");
+    if (error || !data?.user) {
+      setErrorMessage("Invalid email or password");
       setLoading(false);
       return;
     }
 
-    if (error) {
-      setErrorMessage("Invalid email or password.");
-      setLoading(false);
-      return;
-    }
+    const user = data.user;
+    console.log("Logged-in user:", user.id);
 
-    const user = data?.user;
-    if (!user) {
-      setErrorMessage("Something went wrong.");
-      setLoading(false);
-      return;
-    }
-
-    // Check profile exists
-    const { data: profile } = await supabase
+    // Step 2: Fetch profile
+    const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("*")
       .eq("id", user.id)
       .single();
 
-    if (!profile) {
+    console.log("Profile fetched:", profile);
+
+    if (profileError || !profile) {
+      setErrorMessage("Profile missing. Please sign up.");
       await supabase.auth.signOut();
-      setErrorMessage("Account not found. Please sign up first.");
       setLoading(false);
       return;
     }
 
-    toast.success("Welcome!");
-    router.push(profile.role === "student" ? "/studentprofile" : "/alumniprofile");
+    // Normalize role
+    let role = profile.role?.toLowerCase().trim();
+    const isVerified = profile.is_verified_alumni === true;
+
+    console.log("Role:", role, "Verified:", isVerified);
+
+    // Redirect logic
+    if (role === "student") {
+      toast.success("Welcome Student!");
+      router.push("/profile/studentprofile");
+    } 
+    else if (role === "alumni") {
+      toast.success("Welcome Alumni!");
+      router.push("/profile/alumniprofile");
+    }
+    else if (isVerified) {
+      toast.success("Welcome Verified Alumni!");
+      router.push("/profile/alumniprofile");
+    }
+    else {
+      console.error("Invalid role:", role);
+      setErrorMessage("Your account is missing a valid role.");
+    }
 
     setLoading(false);
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999] p-4">
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[99999] p-4">
       <div className="bg-white rounded-2xl p-8 w-full max-w-md shadow-xl relative">
 
         <button
@@ -96,7 +105,7 @@ const SignInModal = () => {
             type="email"
             placeholder="Email"
             required
-            className="w-full border px-5 py-3 rounded-md"
+            className="border px-5 py-3 rounded-md"
             onChange={(e) => setEmail(e.target.value)}
           />
 
@@ -104,15 +113,15 @@ const SignInModal = () => {
             type="password"
             placeholder="Password"
             required
-            className="w-full border px-5 py-3 rounded-md"
+            className="border px-5 py-3 rounded-md"
             onChange={(e) => setPassword(e.target.value)}
           />
 
           {errorMessage && (
-            <p className="text-red-600 text-sm text-center -mt-2">{errorMessage}</p>
+            <p className="text-red-600 text-sm text-center">{errorMessage}</p>
           )}
 
-          <button className="bg-primary w-full py-3 rounded-md text-white flex justify-center">
+          <button className="bg-primary text-white py-3 rounded-md flex justify-center">
             {loading ? <Loader /> : "Sign In"}
           </button>
         </form>
@@ -126,10 +135,7 @@ const SignInModal = () => {
             Sign Up
           </span>
         </p>
-
       </div>
     </div>
   );
-};
-
-export default SignInModal;
+}

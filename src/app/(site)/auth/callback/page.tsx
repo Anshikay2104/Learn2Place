@@ -52,11 +52,25 @@ export default function AuthCallbackPage() {
 
       if (exists) {
         toast.success("Welcome back!");
-        router.push(profile.role === "student" ? "/studentprofile" : "/alumniprofile");
+
+        const role = profile.role?.toLowerCase();
+        const verified = profile.is_verified_alumni === true;
+
+        if (role === "student") {
+          router.push("/profile/studentprofile");
+          return;
+        }
+
+        if (role === "alumni" || verified) {
+          router.push("/profile/alumniprofile");
+          return;
+        }
+
+        router.push("/");
         return;
       }
 
-      /* 2️⃣ IS THIS THE GOOGLE SIGNUP FLOW? */
+      /* 2️⃣ GOOGLE SIGNUP FLOW */
       const signupMode = localStorage.getItem("signup_mode");
 
       if (signupMode === "true") {
@@ -74,7 +88,7 @@ export default function AuthCallbackPage() {
           return;
         }
 
-        /* 2A — STUDENT EMAIL MUST BE INSTITUTIONAL */
+        /* 2A — STUDENT EMAIL VALIDATION */
         if (selectedRole === "student") {
           if (!lowerEmail.endsWith("@modyuniversity.ac.in")) {
             toast.error("Students must use @modyuniversity.ac.in email.");
@@ -82,9 +96,12 @@ export default function AuthCallbackPage() {
             window.location.href = "/auth/signin?invalid_student_email=true";
             return;
           }
+
+          await createProfile(currentUser, "student", false);
+          return;
         }
 
-        /* 2B — ALUMNI MUST MATCH VERIFIED EMAIL */
+        /* 2B — ALUMNI EMAIL VALIDATION */
         if (selectedRole === "alumni") {
           if (!alumniVerified || !verifiedAlumniEmail) {
             toast.error("Please verify your alumni email again.");
@@ -103,18 +120,13 @@ export default function AuthCallbackPage() {
             )}`;
             return;
           }
-        }
 
-        /* 3️⃣ CREATE PROFILE */
-        await createProfile(
-          currentUser,
-          selectedRole as "student" | "alumni",
-          selectedRole === "alumni"
-        );
-        return;
+          await createProfile(currentUser, "alumni", true);
+          return;
+        }
       }
 
-      /* 4️⃣ NEW GOOGLE LOGIN — NO PROFILE—ASK ROLE */
+      /* 4️⃣ NEW GOOGLE LOGIN → ASK ROLE */
       setShowRoleModal(true);
       setLoading(false);
     };
@@ -126,7 +138,7 @@ export default function AuthCallbackPage() {
   const handleRoleSelect = async (selectedRole: "student" | "alumni") => {
     const email = user?.email?.toLowerCase() || "";
 
-    /* STUDENT RULE — MUST MATCH DOMAIN */
+    /* STUDENT RULE */
     if (selectedRole === "student") {
       if (!email.endsWith("@modyuniversity.ac.in")) {
         toast.error("Use your institutional ID (@modyuniversity.ac.in).");
@@ -139,7 +151,7 @@ export default function AuthCallbackPage() {
       return;
     }
 
-    /* ALUMNI → SHOW EMAIL VERIFICATION MODAL */
+    /* ALUMNI → SHOW EMAIL MODAL */
     setShowAlumniModal(true);
   };
 
@@ -203,7 +215,12 @@ export default function AuthCallbackPage() {
     localStorage.removeItem("signup_alumni_email");
 
     toast.success("Profile created!");
-    router.push(role === "student" ? "/studentprofile" : "/alumniprofile");
+
+    if (role === "student") {
+      router.push("/profile/studentprofile");
+    } else {
+      router.push("/profile/alumniprofile");
+    }
   };
 
   return (
