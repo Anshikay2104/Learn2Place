@@ -12,6 +12,9 @@ const Hero = () => {
   const supabase = createClientComponentClient();
   const router = useRouter();
 
+  // ✅ FIX 1: move inside component
+  const [searchQuery, setSearchQuery] = useState("");
+
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAlumni, setIsAlumni] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -49,23 +52,28 @@ const Hero = () => {
     loadProfile();
   }, []);
 
-  // 🔐 Search button auth guard + redirect back after signup
-  const handleSearchClick = async () => {
+  // ✅ FIX 2: correct search handler
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return;
+
     const {
       data: { user },
     } = await supabase.auth.getUser();
 
-    // ❌ Not logged in → redirect to signup
+    // ❌ Not logged in
     if (!user) {
-      // Save where user wanted to go
-      localStorage.setItem("redirectAfterAuth", "/search");
-
+      localStorage.setItem(
+        "redirectAfterAuth",
+        `/search?query=${encodeURIComponent(searchQuery.trim())}`
+      );
       router.push("/auth/signup");
       return;
     }
 
-    // ✅ Logged in → allow
-    router.push("/search");
+    // ✅ Logged in → pass query
+    router.push(
+      `/search?query=${encodeURIComponent(searchQuery.trim())}`
+    );
   };
 
   return (
@@ -98,48 +106,61 @@ const Hero = () => {
             {loading ? (
               <p>Loading...</p>
             ) : isAlumni ? (
-              // 🎓 Alumni CTA
               <Link href="/companies/add-experience">
-                <button className="bg-indigo-600 hover:bg-indigo-700 text-white px-10 py-4 rounded-2xl text-xl font-bold shadow-[0_10px_20px_rgba(99,102,241,0.25)] transition-all">
+                <button className="bg-indigo-600 hover:bg-indigo-700 text-white px-10 py-4 rounded-2xl text-xl font-bold">
                   + Add Your Interview Experience
                 </button>
               </Link>
             ) : isLoggedIn ? (
-              // 🔍 Logged-in users can search normally
+              // ✅ SEARCH BOX (logged in users)
               <div className="relative rounded-full pt-4">
                 <input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                   className="py-6 lg:py-7 pl-8 pr-24 text-lg w-full text-black rounded-full shadow-input-shadow bg-white"
                   placeholder="Search companies, resources..."
                 />
 
                 <button
-                  onClick={() => router.push("/search")}
+                  onClick={handleSearch}
                   className="bg-secondary p-5 rounded-full absolute right-2 top-2 hover:scale-105 transition"
                 >
-                  <Icon icon="solar:magnifer-linear" className="text-white text-3xl" />
+                  <Icon
+                    icon="solar:magnifer-linear"
+                    className="text-white text-3xl"
+                  />
                 </button>
               </div>
             ) : (
-              // 🔒 Not logged in → show lock + signup redirect
-              <div className="pt-4">
-                <p className="text-sm text-gray-600 mb-2 flex items-center gap-2">
-                  <Icon icon="solar:lock-bold" className="text-lg" />
-                  Sign up to search companies, resources & alumni
-                </p>
+              // 🔒 Not logged in → show signup prompt + disabled search
+              <div className="flex flex-col gap-3 pt-4">
+                <div className="bg-yellow-50 border border-yellow-300 rounded-lg p-3 flex items-start gap-2">
+                  <Icon
+                    icon="solar:info-circle-bold"
+                    className="text-yellow-600 text-xl flex-shrink-0 mt-0.5"
+                  />
+                  <p className="text-sm text-yellow-800">
+                    <span className="font-semibold">Sign up</span> before using this functionality
+                  </p>
+                </div>
 
                 <div className="relative rounded-full">
                   <input
                     disabled
-                    className="py-6 lg:py-7 pl-8 pr-24 text-lg w-full text-black rounded-full bg-white cursor-not-allowed shadow-input-shadow"
+                    className="py-6 lg:py-7 pl-8 pr-24 text-lg w-full text-black rounded-full bg-white cursor-not-allowed shadow-input-shadow opacity-60"
                     placeholder="Search companies, resources..."
                   />
 
                   <button
-                    onClick={handleSearchClick}
+                    onClick={() => router.push("/auth/signup")}
                     className="bg-secondary p-5 rounded-full absolute right-2 top-2 hover:scale-105 transition"
                     title="Sign up to search"
                   >
-                    <Icon icon="solar:magnifer-linear" className="text-white text-3xl" />
+                    <Icon
+                      icon="solar:magnifer-linear"
+                      className="text-white text-3xl"
+                    />
                   </button>
                 </div>
               </div>

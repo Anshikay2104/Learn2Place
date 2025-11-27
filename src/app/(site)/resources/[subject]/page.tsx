@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { toast } from "react-hot-toast";
 
 const SUBJECT_DETAILS: any = {
   dsa: {
@@ -41,6 +42,7 @@ const SUBJECT_DETAILS: any = {
 export default function SubjectPage() {
   const supabase = createClientComponentClient();
   const { subject } = useParams() as { subject?: string };
+  const router = useRouter();
   const info = subject ? (SUBJECT_DETAILS as Record<string, any>)[subject] : undefined;
 
   const [resources, setResources] = useState<any[]>([]);
@@ -48,15 +50,33 @@ export default function SubjectPage() {
 
   useEffect(() => {
     const loadResources = async () => {
-      const { data } = await supabase
-        .from("resources")
-        .select("*")
-        .eq("subject_id", subject)
-        .order("created_at", { ascending: false });
+      try {
+        const { data, error } = await supabase
+          .from("resources")
+          .select("*")
+          .eq("subject_id", subject)
+          .order("created_at", { ascending: false });
 
-      setResources(data || []);
-      setLoading(false);
+        if (error) throw error;
+
+        setResources(data || []);
+      } catch (err: any) {
+        console.error("Failed to load resources:", err);
+        toast.error("Failed to load resources. Check your network and try again.");
+        // Optional: redirect to not-found or leave user on page with message
+        // router.replace(`/search/not-found?query=${encodeURIComponent(subject || "")}`);
+        setResources([]);
+      } finally {
+        setLoading(false);
+      }
     };
+
+    // If subject param is missing or invalid, avoid making fetch request
+    if (!subject || !info) {
+      setResources([]);
+      setLoading(false);
+      return;
+    }
 
     loadResources();
   }, [subject]);
@@ -66,11 +86,12 @@ export default function SubjectPage() {
       {/* Banner Section */}
       <div className="mb-12">
         <img
-          src={info.banner}
+          src={info?.banner ?? "/images/resources/default.jpg"}
+          alt={info?.title ?? "Subject banner"}
           className="w-full h-64 object-cover rounded-xl shadow-lg"
         />
-        <h1 className="text-4xl font-bold mt-6">{info.title}</h1>
-        <p className="text-lg text-gray-600 mt-2">{info.desc}</p>
+        <h1 className="text-4xl font-bold mt-6">{info?.title ?? "Subject"}</h1>
+        <p className="text-lg text-gray-600 mt-2">{info?.desc ?? ""}</p>
       </div>
 
       {/* Resource Grid */}
