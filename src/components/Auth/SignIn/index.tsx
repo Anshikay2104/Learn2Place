@@ -23,11 +23,7 @@ export default function SignInModal() {
     setLoading(true);
     setErrorMessage("");
 
-    // Step 1: Sign in
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error || !data?.user) {
       setErrorMessage("Invalid email or password");
@@ -36,16 +32,12 @@ export default function SignInModal() {
     }
 
     const user = data.user;
-    console.log("Logged-in user:", user.id);
 
-    // Step 2: Fetch profile
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("*")
       .eq("id", user.id)
       .single();
-
-    console.log("Profile fetched:", profile);
 
     if (profileError || !profile) {
       setErrorMessage("Profile missing. Please sign up.");
@@ -54,27 +46,19 @@ export default function SignInModal() {
       return;
     }
 
-    // Normalize role
     let role = profile.role?.toLowerCase().trim();
     const isVerified = profile.is_verified_alumni === true;
 
-    console.log("Role:", role, "Verified:", isVerified);
-
-    // Redirect logic
     if (role === "student") {
       toast.success("Welcome Student!");
       router.push("/profile/studentprofile");
-    } 
-    else if (role === "alumni") {
+    } else if (role === "alumni") {
       toast.success("Welcome Alumni!");
       router.push("/profile/alumniprofile");
-    }
-    else if (isVerified) {
+    } else if (isVerified) {
       toast.success("Welcome Verified Alumni!");
       router.push("/profile/alumniprofile");
-    }
-    else {
-      console.error("Invalid role:", role);
+    } else {
       setErrorMessage("Your account is missing a valid role.");
     }
 
@@ -84,57 +68,17 @@ export default function SignInModal() {
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[99999] p-4">
       <div className="bg-white rounded-2xl p-8 w-full max-w-md shadow-xl relative">
-
-        <button
-          className="absolute right-4 top-4 text-xl"
-          onClick={() => router.push("/")}
-        >
-          ✕
-        </button>
-
-        <div className="flex justify-center mb-6">
-          <Logo />
-        </div>
-
+        <button className="absolute right-4 top-4 text-xl" onClick={() => router.push("/")}>✕</button>
+        <div className="flex justify-center mb-6"><Logo /></div>
         <SocialSignIn />
-
         <div className="text-center my-6 text-gray-500 text-sm">OR</div>
-
         <form onSubmit={loginUser} className="flex flex-col gap-4">
-          <input
-            type="email"
-            placeholder="Email"
-            required
-            className="border px-5 py-3 rounded-md"
-            onChange={(e) => setEmail(e.target.value)}
-          />
-
-          <input
-            type="password"
-            placeholder="Password"
-            required
-            className="border px-5 py-3 rounded-md"
-            onChange={(e) => setPassword(e.target.value)}
-          />
-
-          {errorMessage && (
-            <p className="text-red-600 text-sm text-center">{errorMessage}</p>
-          )}
-
-          <button className="bg-primary text-white py-3 rounded-md flex justify-center">
-            {loading ? <Loader /> : "Sign In"}
-          </button>
+          <input type="email" placeholder="Email" required className="border px-5 py-3 rounded-md" onChange={(e) => setEmail(e.target.value)} />
+          <input type="password" placeholder="Password" required className="border px-5 py-3 rounded-md" onChange={(e) => setPassword(e.target.value)} />
+          {errorMessage && (<p className="text-red-600 text-sm text-center">{errorMessage}</p>)}
+          <button className="bg-primary text-white py-3 rounded-md flex justify-center">{loading ? <Loader /> : "Sign In"}</button>
         </form>
-
-        <p className="text-center mt-4">
-          Don’t have an account?
-          <span
-            className="text-primary ml-1 cursor-pointer"
-            onClick={() => router.push("/auth/signup")}
-          >
-            Sign Up
-          </span>
-        </p>
+        <p className="text-center mt-4">Don’t have an account? <span className="text-primary ml-1 cursor-pointer" onClick={() => router.push("/auth/signup")}>Sign Up</span></p>
       </div>
     </div>
   );
