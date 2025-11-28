@@ -1,0 +1,9 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`ScrollToTop Component should match snapshot 1`] = `
+<div>
+  <div
+    class="fixed bottom-8 right-8 z-[999]"
+  />
+</div>
+`;
