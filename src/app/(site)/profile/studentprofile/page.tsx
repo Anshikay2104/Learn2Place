@@ -2,35 +2,51 @@
 
 import { useEffect, useState } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { UsersRound, Bookmark, Settings, LogOut, Edit } from "lucide-react";
+import { UsersRound, Bookmark, LogOut, Edit } from "lucide-react";
 import EditProfileModal from "@/components/Profile/EditProfileModal";
-import { getAvatarColor } from "@/utils/getAvatarColor";
 
 export default function StudentProfilePage() {
   const supabase = createClientComponentClient();
 
   const [authUser, setAuthUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
+  const [bookmarkedResources, setBookmarkedResources] = useState<any[]>([]);
+  const [recentAlumni, setRecentAlumni] = useState<any[]>([]);
   const [showEdit, setShowEdit] = useState(false);
 
-  // ------------------------------------
-  // Load Profile
-  // ------------------------------------
   useEffect(() => {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser();
       setAuthUser(user);
-
       if (!user) return;
 
-      const { data } = await supabase
+      // PROFILE
+      const { data: profileData } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", user.id)
         .single();
+      setProfile(profileData);
 
-      setProfile(data);
+      // RESOURCE BOOKMARKS
+      const { data: bookmarkData } = await supabase
+        .from("resource_bookmarks")
+        .select("resource:resource_id(*)")
+        .eq("user_id", user.id);
+
+      setBookmarkedResources((bookmarkData || []).map((b) => b.resource));
+
+      // RECENTLY VIEWED ALUMNI
+      const { data: recent } = await supabase
+        .from("recently_viewed_alumni")
+        .select("*, alumni:alumni_id(full_name, id)")
+        .eq("user_id", user.id)
+        .order("viewed_at", { ascending: false })
+        .limit(5);
+
+      setRecentAlumni(recent || []);
     }
+
     load();
   }, []);
 
@@ -38,38 +54,22 @@ export default function StudentProfilePage() {
     return <div className="pt-48 text-center text-xl font-semibold">Loading…</div>;
   }
 
-  // ------------------------------------
-  // Extract initials safely
-  // ------------------------------------
+  // Initial letters for avatar
   function getInitials(name?: string, email?: string) {
-    if (typeof name === "string" && name.trim().length > 0) {
-      return name
-        .trim()
-        .split(/\s+/)
-        .map((w) => w[0])
-        .join("")
-        .toUpperCase();
-    }
-    if (typeof email === "string" && email.includes("@")) {
-      return email[0].toUpperCase();
-    }
-    return "U";
+    if (name) return name.split(" ").map(w => w[0]).join("").toUpperCase();
+    return email?.charAt(0)?.toUpperCase() || "U";
   }
 
   const initials = getInitials(profile.full_name, authUser.email);
-  const avatarColor = getAvatarColor(authUser.id); // same color everywhere
 
-  // ------------------------------------
-  // Logout
-  // ------------------------------------
+  const avatarGradient = "bg-gradient-to-r from-indigo-500 to-purple-500";
+
+  // LOGOUT
   async function handleLogout() {
     await supabase.auth.signOut();
     window.location.href = "/auth/signin";
   }
 
-  // ------------------------------------
-  // UI
-  // ------------------------------------
   return (
     <>
       {showEdit && (
@@ -80,76 +80,118 @@ export default function StudentProfilePage() {
         />
       )}
 
-      <div className="bg-gray-50 min-h-screen pt-48 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="bg-gray-50 min-h-screen pt-40 md:pt-48 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-14">
 
-          {/* LEFT PROFILE CARD */}
-          <aside className="bg-white rounded-xl shadow-lg p-6 relative">
-            
-            {/* Edit Button */}
+          {/* LEFT */}
+          <aside className="bg-white rounded-3xl shadow-xl p-10 pb-16 relative flex flex-col items-center">
             <button
               onClick={() => setShowEdit(true)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-indigo-600 transition"
+              className="absolute top-6 right-6 text-gray-400 hover:text-indigo-600 transition"
             >
-              <Edit className="w-5 h-5" />
+              <Edit className="w-6 h-6" />
             </button>
 
-            {/* Avatar Initials */}
             <div
-              className={`w-32 h-32 rounded-full flex items-center justify-center text-4xl font-bold mx-auto mb-4 text-white shadow ${avatarColor}`}
+              className={`w-32 h-32 rounded-full flex items-center justify-center 
+              text-4xl font-extrabold text-white shadow-lg ${avatarGradient}`}
             >
               {initials}
             </div>
 
-            <h1 className="text-2xl font-bold text-center">
+            <h1 className="mt-5 text-2xl font-extrabold text-center text-gray-900">
               {profile.full_name}
             </h1>
 
-            <p className="text-sm text-center text-blue-700 bg-blue-100 px-3 py-1 rounded-full mt-2 inline-block mx-auto">
+            <span className="mt-2 px-4 py-1 rounded-full bg-indigo-100 text-indigo-700 text-sm font-medium">
               Student
+            </span>
+
+            <p className="mt-5 text-center text-gray-600">
+              {profile.bio || "No bio added yet."}
             </p>
 
-            <p className="mt-4 text-center text-gray-700">
-              {profile.bio || "No bio added yet."}
+            <p className="mt-2 text-center text-gray-500 text-sm">
+              Batch of {profile.passing_year || "N/A"}
             </p>
           </aside>
 
-          {/* RIGHT CONTENT */}
-          <main className="lg:col-span-2 space-y-8">
+          {/* RIGHT */}
+          <main className="lg:col-span-2 space-y-14">
 
-            {/* Bookmarked Resources */}
-            <section className="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                <Bookmark className="w-5 h-5 text-blue-500" />
+            {/* BOOKMARKED RESOURCES */}
+            <section className="bg-white rounded-3xl shadow-xl p-10">
+              <h2 className="text-xl font-bold flex items-center gap-3 text-gray-900 mb-6">
+                <Bookmark className="w-6 h-6 text-indigo-600" />
                 Bookmarked Resources
               </h2>
-              <p className="text-gray-600">No bookmarks yet.</p>
+
+              {bookmarkedResources.length === 0 ? (
+                <p className="text-gray-600">No bookmarked resources yet.</p>
+              ) : (
+                <ul className="space-y-4">
+                  {bookmarkedResources.map((res) => (
+                    <li
+                      key={res.id}
+                      className="p-4 bg-gray-50 border rounded-xl shadow-sm hover:shadow-md transition"
+                    >
+                      <p className="font-semibold text-gray-900">{res.title}</p>
+                      {res.description && (
+                        <p className="text-sm text-gray-600 mt-1">{res.description}</p>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </section>
 
-            {/* Recently Viewed Alumni */}
-            <section className="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                <UsersRound className="w-5 h-5 text-blue-500" />
+            {/* RECENT ALUMNI */}
+            <section className="bg-white rounded-3xl shadow-xl p-10">
+              <h2 className="text-xl font-bold flex items-center gap-3 text-gray-900 mb-6">
+                <UsersRound className="w-6 h-6 text-indigo-600" />
                 Recently Viewed Alumni
               </h2>
-              <p className="text-gray-600">No recently viewed alumni.</p>
+
+              {recentAlumni.length === 0 ? (
+                <p className="text-gray-600">No recently viewed alumni.</p>
+              ) : (
+                <ul className="space-y-6">
+                  {recentAlumni.map((item) => (
+                    <li
+                      key={item.id}
+                      className="flex items-center gap-4 p-4 bg-gray-50 border rounded-xl shadow-sm hover:shadow-md transition"
+                    >
+                      <div className="w-12 h-12 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold">
+                        {getInitials(item.alumni.full_name)}
+                      </div>
+
+                      <div>
+                        <p className="font-semibold text-gray-900">
+                          {item.alumni.full_name}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          Viewed on {new Date(item.viewed_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </section>
 
-            {/* Settings */}
-            <section className="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                <Settings className="w-5 h-5 text-blue-500" /> Settings
-              </h2>
-
+            {/* LOGOUT */}
+            <div className="flex justify-center mt-4">
               <button
                 onClick={handleLogout}
-                className="w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl text-lg font-medium shadow-md transition"
+                className="w-80 py-4 flex items-center justify-center gap-3 
+                text-white font-semibold text-lg rounded-2xl
+                bg-gradient-to-r from-indigo-500 to-purple-500 shadow-lg hover:scale-105 transition"
               >
+                <LogOut className="w-6 h-6 text-white" />
                 Logout
               </button>
-            </section>
+            </div>
           </main>
-
         </div>
       </div>
     </>

@@ -1,20 +1,19 @@
-export function getAvatarColor(id: string) {
+export function getAvatarColor(seed: string): string {
+  if (!seed) return "bg-indigo-500";
+
   const colors = [
-    "bg-red-600",
-    "bg-blue-600",
-    "bg-green-600",
-    "bg-purple-600",
-    "bg-pink-600",
+    "bg-indigo-500",
+    "bg-purple-500",
+    "bg-violet-500",
+    "bg-blue-500",
     "bg-indigo-600",
-    "bg-orange-600",
-    "bg-teal-600",
   ];
 
-  if (!id) return colors[0];
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) {
+    hash = seed.charCodeAt(i) + ((hash << 5) - hash);
+  }
 
-  // Create a stable number based on the user ID
-  let sum = 0;
-  for (let i = 0; i < id.length; i++) sum += id.charCodeAt(i);
-
-  return colors[sum % colors.length];
+  const index = Math.abs(hash % colors.length);
+  return colors[index];
 }

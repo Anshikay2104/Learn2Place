@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
+import { useParams } from "next/navigation";
 import { toast } from "react-hot-toast";
+import { Bookmark } from "lucide-react";
 
 const SUBJECT_DETAILS: any = {
   dsa: {
@@ -42,44 +42,79 @@ const SUBJECT_DETAILS: any = {
 export default function SubjectPage() {
   const supabase = createClientComponentClient();
   const { subject } = useParams() as { subject?: string };
-  const router = useRouter();
-  const info = subject ? (SUBJECT_DETAILS as Record<string, any>)[subject] : undefined;
+  const info = subject ? SUBJECT_DETAILS[subject] : undefined;
 
   const [resources, setResources] = useState<any[]>([]);
+  const [bookmarks, setBookmarks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Load resources + bookmarks
   useEffect(() => {
-    const loadResources = async () => {
+    const loadEverything = async () => {
       try {
-        const { data, error } = await supabase
+        const { data: { user } } = await supabase.auth.getUser();
+
+        // LOAD RESOURCES
+        const { data: resourceData } = await supabase
           .from("resources")
           .select("*")
           .eq("subject_id", subject)
           .order("created_at", { ascending: false });
 
-        if (error) throw error;
+        setResources(resourceData || []);
 
-        setResources(data || []);
-      } catch (err: any) {
-        console.error("Failed to load resources:", err);
-        toast.error("Failed to load resources. Check your network and try again.");
-        // Optional: redirect to not-found or leave user on page with message
-        // router.replace(`/search/not-found?query=${encodeURIComponent(subject || "")}`);
-        setResources([]);
+        // LOAD USER BOOKMARKS
+        if (user) {
+          const { data: bookmarkData } = await supabase
+            .from("resource_bookmarks")
+            .select("resource_id")
+            .eq("user_id", user.id);
+
+          setBookmarks(bookmarkData || []);
+        }
+
+      } catch (err) {
+        console.error(err);
+        toast.error("Failed to load content");
       } finally {
         setLoading(false);
       }
     };
 
-    // If subject param is missing or invalid, avoid making fetch request
-    if (!subject || !info) {
-      setResources([]);
-      setLoading(false);
-      return;
-    }
-
-    loadResources();
+    if (subject && info) loadEverything();
+    else setLoading(false);
   }, [subject]);
+
+  // Bookmark toggle function
+  async function toggleBookmark(resourceId: string) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return toast.error("Please login to bookmark");
+
+    const isBookmarked = bookmarks.some((b) => b.resource_id === resourceId);
+
+    if (isBookmarked) {
+      // REMOVE bookmark
+      await supabase
+        .from("resource_bookmarks")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("resource_id", resourceId);
+
+      setBookmarks((prev) => prev.filter((b) => b.resource_id !== resourceId));
+      toast("Removed from bookmarks");
+    } else {
+      // ADD bookmark
+      await supabase.from("resource_bookmarks").insert({
+        user_id: user.id,
+        resource_id: resourceId,
+      });
+
+      setBookmarks((prev) => [...prev, { resource_id: resourceId }]);
+      toast.success("Bookmarked!");
+    }
+  }
+
+  if (loading) return <p className="px-6 py-10">Loading…</p>;
 
   return (
     <div className="px-6 py-10 lg:px-20">
@@ -95,42 +130,60 @@ export default function SubjectPage() {
       </div>
 
       {/* Resource Grid */}
-      {loading ? (
-        <p>Loading resources...</p>
-      ) : resources.length === 0 ? (
+      {resources.length === 0 ? (
         <p className="text-gray-500 text-lg">No resources added yet.</p>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
-          {resources.map((res: any) => (
-            <div
-              key={res.id}
-              className="bg-white border rounded-2xl shadow-md p-5 hover:shadow-lg transition"
-            >
-              <h3 className="font-semibold text-lg mb-2">{res.title}</h3>
+          {resources.map((res) => {
+            const isBookmarked = bookmarks.some(
+              (b) => b.resource_id === res.id
+            );
 
-              {res.resource_type === "file" ? (
-                <a
-                  href={res.file_path}
-                  target="_blank"
-                  className="text-blue-600 underline text-sm"
+            return (
+              <div
+                key={res.id}
+                className="bg-white border rounded-2xl shadow-md p-5 hover:shadow-lg transition relative"
+              >
+                {/* Bookmark Button */}
+                <button
+                  onClick={() => toggleBookmark(res.id)}
+                  className="absolute top-4 right-4"
                 >
-                  📄 Download File
-                </a>
-              ) : (
-                <a
-                  href={res.url}
-                  target="_blank"
-                  className="text-green-600 underline text-sm"
-                >
-                  🔗 Open Link
-                </a>
-              )}
+                  <Bookmark
+                    className={`w-6 h-6 ${
+                      isBookmarked
+                        ? "text-purple-600 fill-purple-600"
+                        : "text-gray-400"
+                    }`}
+                  />
+                </button>
 
-              <p className="text-xs text-gray-500 mt-3">
-                Uploaded on {new Date(res.created_at).toLocaleDateString()}
-              </p>
-            </div>
-          ))}
+                <h3 className="font-semibold text-lg mb-2">{res.title}</h3>
+
+                {res.resource_type === "file" ? (
+                  <a
+                    href={res.file_path}
+                    target="_blank"
+                    className="text-blue-600 underline text-sm"
+                  >
+                    📄 Download File
+                  </a>
+                ) : (
+                  <a
+                    href={res.url}
+                    target="_blank"
+                    className="text-green-600 underline text-sm"
+                  >
+                    🔗 Open Link
+                  </a>
+                )}
+
+                <p className="text-xs text-gray-500 mt-3">
+                  Uploaded on {new Date(res.created_at).toLocaleDateString()}
+                </p>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
