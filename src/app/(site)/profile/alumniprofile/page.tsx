@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
 import {
@@ -12,13 +11,14 @@ import {
   Edit,
   GraduationCap,
   Award,
+  LogOut,
 } from "lucide-react";
 
 import EditProfileModal from "@/components/Profile/EditProfileModal";
 
-// ==============================================================
-//                   ALUMNI PROFILE PAGE (FULLY WORKING)
-// ==============================================================
+// ===================================================================
+//                 BEAUTIFULLY REDESIGNED ALUMNI PROFILE PAGE
+// ===================================================================
 
 export default function AlumniProfilePage() {
   const supabase = createClientComponentClient();
@@ -40,16 +40,14 @@ export default function AlumniProfilePage() {
   });
 
   // ==============================================================
-  // Fetch profile + stats + activity
+  // Fetch data
   // ==============================================================
   useEffect(() => {
     async function loadPage() {
       const { data: { user } } = await supabase.auth.getUser();
       setAuthUser(user);
-
       if (!user) return;
 
-      // 👉 Load Profile
       const { data: profileData } = await supabase
         .from("profiles")
         .select("*")
@@ -58,19 +56,17 @@ export default function AlumniProfilePage() {
 
       setProfile(profileData);
 
-      // 👉 Load Resources Count
+      // --- Stats ---
       const { count: resourcesCount } = await supabase
         .from("resources")
         .select("*", { count: "exact", head: true })
         .eq("user_id", user.id);
 
-      // 👉 Load Forum Question Count
       const { count: postsCount } = await supabase
         .from("forum_questions")
         .select("*", { count: "exact", head: true })
         .eq("user_id", user.id);
 
-      // 👉 Load IDs of user’s questions + answers
       const { data: userQuestions } = await supabase
         .from("forum_questions")
         .select("id")
@@ -81,33 +77,30 @@ export default function AlumniProfilePage() {
         .select("id")
         .eq("user_id", user.id);
 
-      const questionIds = userQuestions?.map((q) => q.id) || [];
-      const answerIds = userAnswers?.map((a) => a.id) || [];
+      const questionIds = userQuestions?.map(q => q.id) || [];
+      const answerIds = userAnswers?.map(a => a.id) || [];
 
-      // 👉 Upvotes on questions
       const { count: qUpvotes } = await supabase
         .from("votes")
         .select("*", { count: "exact", head: true })
-        .eq("vote", 1)
         .eq("target_type", "question")
+        .eq("vote", 1)
         .in("target_id", questionIds);
 
-      // 👉 Upvotes on answers
       const { count: aUpvotes } = await supabase
         .from("votes")
         .select("*", { count: "exact", head: true })
-        .eq("vote", 1)
         .eq("target_type", "answer")
+        .eq("vote", 1)
         .in("target_id", answerIds);
 
-      // 👉 Save Stats
       setStats({
         resources: resourcesCount || 0,
         posts: postsCount || 0,
         upvotes: (qUpvotes || 0) + (aUpvotes || 0),
       });
 
-      // 👉 Load Shared Resources
+      // --- Resources ---
       const { data: userResources } = await supabase
         .from("resources")
         .select("*")
@@ -116,17 +109,17 @@ export default function AlumniProfilePage() {
 
       setResources(userResources || []);
 
-      // 👉 Load Recent Activity
+      // --- Recent Activity ---
       const { data: recentQ } = await supabase
         .from("forum_questions")
-        .select("id, title, created_at")
+        .select("*")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(5);
 
       const { data: recentA } = await supabase
         .from("forum_answers")
-        .select("id, body, created_at, question_id")
+        .select("*")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(5);
@@ -142,38 +135,28 @@ export default function AlumniProfilePage() {
 
   if (!authUser || !profile) {
     return (
-      <div className="pt-48 text-center text-xl font-semibold">
+      <div className="pt-40 md:pt-48 text-center text-xl font-semibold text-gray-600">
         Loading Profile...
       </div>
     );
   }
 
-  // SAFE INITIALS
-  function getInitials(name: any, email: any) {
-    if (typeof name === "string" && name.trim().length > 0) {
-      return name
-        .trim()
-        .split(/\s+/)
-        .map((w: string) => w[0])
-        .join("")
-        .toUpperCase();
-    }
-    if (typeof email === "string" && email.includes("@")) {
-      return email[0].toUpperCase();
-    }
-    return "U";
+  // Initials Logic
+  function getInitials(name: string, email: string) {
+    if (name) return name.split(" ").map(w => w[0]).join("").toUpperCase();
+    return email?.charAt(0).toUpperCase() || "U";
   }
 
   const initials = getInitials(profile.full_name, authUser.email);
 
-  // LOGOUT
   async function handleLogout() {
     await supabase.auth.signOut();
     window.location.href = "/auth/signin";
   }
 
   return (
-    <>
+    <div className="bg-gray-50 min-h-screen pt-40 md:pt-48 px-4 sm:px-6 lg:px-8">
+
       {/* EDIT PROFILE MODAL */}
       {showEdit && (
         <EditProfileModal
@@ -186,157 +169,162 @@ export default function AlumniProfilePage() {
         />
       )}
 
-      {/* MAIN LAYOUT */}
-      <div className="bg-gray-50 min-h-screen pt-48 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-14">
 
-          {/* LEFT PROFILE CARD */}
-          <aside className="bg-white rounded-lg shadow-lg p-6 relative">
-            <button
-              onClick={() => setShowEdit(true)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-indigo-600 transition"
-            >
-              <Edit className="w-5 h-5" />
-            </button>
+        {/* LEFT CARD */}
+        <aside className="bg-white rounded-3xl shadow-xl p-8 relative">
 
-            <div className="flex flex-col items-center">
-              <div className="w-32 h-32 rounded-full bg-indigo-600 text-white flex items-center justify-center text-4xl font-bold mb-4">
-                {initials}
-              </div>
+          {/* EDIT ICON */}
+          <button
+            onClick={() => setShowEdit(true)}
+            className="absolute top-5 right-5 text-gray-400 hover:text-indigo-600 transition"
+          >
+            <Edit className="w-6 h-6" />
+          </button>
 
-              <h1 className="text-2xl font-bold text-gray-900">
-                {profile.full_name}
-              </h1>
-
-              <span className="px-3 py-1 mt-2 rounded-full text-sm font-semibold bg-indigo-100 text-indigo-800">
-                Alumni
-              </span>
-
-              <p className="text-center text-gray-600 mt-4">
-                {profile.bio || "No bio added."}
-              </p>
+          {/* PROFILE HEADER */}
+          <div className="flex flex-col items-center">
+            <div className="w-32 h-32 rounded-full bg-indigo-600 text-white 
+                            flex items-center justify-center text-4xl font-extrabold shadow-lg">
+              {initials}
             </div>
 
-            {/* DETAILS */}
-            <div className="mt-6 border-t border-gray-200 pt-6">
-              <h3 className="text-sm font-medium text-gray-500 uppercase">
-                Details
-              </h3>
+            <h1 className="mt-5 text-2xl font-extrabold text-gray-900">
+              {profile.full_name}
+            </h1>
 
-              <ul className="mt-2 space-y-3">
-                <li className="flex items-center text-gray-700">
-                  <GraduationCap className="w-5 h-5 mr-3 text-gray-400" />
-                  <span>B.Tech Computer Science</span>
-                </li>
+            <span className="mt-3 px-4 py-1 rounded-full bg-indigo-100 
+                             text-indigo-700 font-semibold text-sm">
+              Alumni
+            </span>
 
-                <li className="flex items-center text-gray-700">
-                  <Award className="w-5 h-5 mr-3 text-gray-400" />
-                  <span>Class of {profile.passing_year || "N/A"}</span>
-                </li>
+            <p className="mt-4 text-gray-600 text-center leading-relaxed">
+              {profile.bio || "No bio added."}
+            </p>
+          </div>
 
-                <li className="flex items-center text-gray-700">
-                  <MapPin className="w-5 h-5 mr-3 text-gray-400" />
-                  <span>{profile.location || "Location not set"}</span>
-                </li>
+          {/* DETAILS */}
+          <div className="mt-8 pt-6 border-t border-gray-200">
+            <h3 className="text-sm font-semibold text-gray-500 tracking-wide">DETAILS</h3>
 
-                <li className="flex items-center text-gray-700">
-                  <Briefcase className="w-5 h-5 mr-3 text-gray-400" />
-                  <span>
-                    {profile.currentJob || "Job not added"} at{" "}
-                    <strong>{profile.company_id || "Company not added"}</strong>
-                  </span>
-                </li>
+            <ul className="mt-4 space-y-4 text-gray-700">
+
+              <li className="flex items-center">
+                <GraduationCap className="w-5 h-5 mr-3 text-gray-400" />
+                <span>B.Tech Computer Science</span>
+              </li>
+
+              <li className="flex items-center">
+                <Award className="w-5 h-5 mr-3 text-gray-400" />
+                <span>Class of {profile.passing_year || "N/A"}</span>
+              </li>
+
+              {/* <li className="flex items-center">
+                <MapPin className="w-5 h-5 mr-3 text-gray-400" />
+                <span>{profile.location || "Location not set"}</span>
+              </li> */}
+
+              <li className="flex items-center">
+                <Briefcase className="w-5 h-5 mr-3 text-gray-400" />
+                <span>
+                  {profile.currentJob || "Working"} at{" "}
+                  <strong>{profile.company_id || "Company not added"}</strong>
+                </span>
+              </li>
+
+            </ul>
+          </div>
+        </aside>
+
+        {/* RIGHT CONTENT */}
+        <main className="lg:col-span-2 space-y-10">
+
+          {/* STATS */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <StatCard title="Resources Shared" value={stats.resources} icon={BookOpen} />
+            <StatCard title="Forum Posts" value={stats.posts} icon={MessageSquare} />
+            <StatCard title="Upvotes Received" value={stats.upvotes} icon={Award} />
+          </div>
+
+          {/* RESOURCES */}
+          <section className="bg-white rounded-3xl shadow-xl p-8">
+            <h2 className="text-xl font-bold text-gray-900 mb-6">Shared Resources</h2>
+
+            {resources.length === 0 ? (
+              <p className="text-gray-500">No resources shared yet.</p>
+            ) : (
+              <ul className="space-y-4">
+                {resources.map((res) => (
+                  <li key={res.id} className="p-4 bg-gray-50 rounded-xl border hover:shadow-md transition">
+                    <p className="font-semibold text-gray-900">{res.title}</p>
+                    {res.description && (
+                      <p className="text-gray-600 text-sm mt-1">{res.description}</p>
+                    )}
+                  </li>
+                ))}
               </ul>
-            </div>
-          </aside>
+            )}
+          </section>
 
-          {/* RIGHT SIDE CONTENT */}
-          <main className="lg:col-span-2 space-y-8">
-            {/* STATS */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <StatCard title="Resources Shared" value={stats.resources} icon={BookOpen} />
-              <StatCard title="Forum Posts" value={stats.posts} icon={MessageSquare} />
-              <StatCard title="Upvotes Received" value={stats.upvotes} icon={Award} />
-            </div>
+          {/* ACTIVITY */}
+          <section className="bg-white rounded-3xl shadow-xl p-8">
+            <h2 className="text-xl font-bold text-gray-900 mb-6">Recent Forum Activity</h2>
 
-            {/* SHARED RESOURCES */}
-            <section className="bg-white rounded-lg shadow-lg p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Shared Resources</h2>
+            {activity.questions.length === 0 && activity.answers.length === 0 ? (
+              <p className="text-gray-500">No activity yet.</p>
+            ) : (
+              <div className="space-y-5">
+                {activity.questions.map((q) => (
+                  <div key={q.id} className="p-4 bg-gray-50 border rounded-xl hover:shadow-md transition">
+                    <p className="font-semibold">{q.title}</p>
+                    <p className="text-gray-500 text-sm">{new Date(q.created_at).toLocaleString()}</p>
+                  </div>
+                ))}
 
-              {resources.length === 0 ? (
-                <p>No resources shared yet.</p>
-              ) : (
-                <ul className="space-y-4">
-                  {resources.map((res) => (
-                    <li key={res.id} className="p-4 border rounded-lg">
-                      <p className="font-semibold">{res.title}</p>
-                      <p className="text-gray-600 text-sm">{res.description}</p>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
+                {activity.answers.map((a) => (
+                  <div key={a.id} className="p-4 bg-gray-50 border rounded-xl hover:shadow-md transition">
+                    <p className="font-medium text-indigo-700">Answered a question</p>
+                    <p className="text-gray-600 text-sm">{a.body.slice(0, 100)}...</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
 
-            {/* ACTIVITY */}
-            <section className="bg-white rounded-lg shadow-lg p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Recent Forum Activity</h2>
-
-              {activity.questions.length === 0 && activity.answers.length === 0 ? (
-                <p>No activity yet.</p>
-              ) : (
-                <div className="space-y-4">
-                  {/* QUESTIONS */}
-                  {activity.questions.map((q: any) => (
-                    <div key={q.id} className="p-4 border rounded-lg">
-                      <p className="font-semibold">{q.title}</p>
-                      <p className="text-gray-500 text-sm">{new Date(q.created_at).toLocaleString()}</p>
-                    </div>
-                  ))}
-
-                  {/* ANSWERS */}
-                  {activity.answers.map((a: any) => (
-                    <div key={a.id} className="p-4 border rounded-lg">
-                      <p className="font-medium">Answered a question</p>
-                      <p className="text-gray-600 text-sm">{a.body.slice(0, 120)}...</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </section>
-
-            {/* LOGOUT */}
+          {/* LOGOUT BUTTON — BEAUTIFUL GRADIENT BOX */}
+          <div className="flex justify-center">
             <button
               onClick={handleLogout}
-              className="w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl text-lg font-medium shadow-md"
+              className="w-72 py-4 flex items-center justify-center gap-3 
+                         text-white font-semibold text-lg rounded-2xl
+                         bg-gradient-to-r from-indigo-500 to-purple-500
+                         shadow-lg hover:scale-105 transition"
             >
+              <LogOut className="w-6 h-6 text-white" />
               Logout
             </button>
-          </main>
-        </div>
+          </div>
+
+        </main>
       </div>
-    </>
+    </div>
   );
 }
 
-// ==============================================================
-//   STAT CARD COMPONENT
-// ==============================================================
-type StatCardProps = {
-  title: string;
-  value: number;
-  icon: React.ElementType;
-};
+// ===================================================================
+//                         Stat Card Component
+// ===================================================================
 
-function StatCard({ title, value, icon: Icon }: StatCardProps) {
+function StatCard({ title, value, icon: Icon }) {
   return (
-    <div className="bg-white rounded-lg shadow-lg p-5 flex items-center">
-      <div className="bg-indigo-100 p-3 rounded-full mr-4">
-        <Icon className="w-6 h-6 text-indigo-600" />
+    <div className="bg-white rounded-3xl shadow-xl p-6 flex items-center gap-4 hover:shadow-2xl transition">
+      <div className="bg-indigo-100 p-4 rounded-full">
+        <Icon className="w-7 h-7 text-indigo-600" />
       </div>
 
       <div>
-        <p className="text-sm font-medium text-gray-500">{title}</p>
-        <p className="text-2xl font-bold text-gray-900">{value}</p>
+        <p className="text-sm text-gray-500 font-medium">{title}</p>
+        <p className="text-3xl font-bold text-gray-900">{value}</p>
       </div>
     </div>
   );
