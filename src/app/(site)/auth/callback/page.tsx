@@ -23,7 +23,7 @@ export default function AuthCallbackPage() {
 
   const [loading, setLoading] = useState(true);
 
-  // ✅ Helper: redirect safely after auth
+  // ✅ Helper: redirect safely after auth (currently not used, but okay to keep)
   const redirectAfterAuth = (fallbackRoute: string) => {
     const redirectTo = localStorage.getItem("redirectAfterAuth");
 
@@ -67,7 +67,9 @@ export default function AuthCallbackPage() {
 
       if (exists) {
         toast.success("Welcome back!");
-        router.push(profile.role === "student" ? "/studentprofile" : "/alumniprofile");
+        router.push(
+          profile.role === "student" ? "/profile/studentprofile" : "/profile/alumniprofile"
+        );
         return;
       }
 
@@ -94,7 +96,8 @@ export default function AuthCallbackPage() {
           if (!lowerEmail.endsWith("@modyuniversity.ac.in")) {
             toast.error("Students must use @modyuniversity.ac.in email.");
             await supabase.auth.signOut();
-            window.location.href = "/auth/signin?invalid_student_email=true";
+            window.location.href =
+              "/auth/signin?invalid_student_email=true";
             return;
           }
         }
@@ -116,6 +119,7 @@ export default function AuthCallbackPage() {
             router.push("/auth/signin");
             return;
           }
+        }
 
         /* 3️⃣ CREATE PROFILE */
         await createProfile(
@@ -126,12 +130,13 @@ export default function AuthCallbackPage() {
         return;
       }
 
-      /* 4️⃣ NEW GOOGLE LOGIN — NO PROFILE—ASK ROLE */
+      /* 4️⃣ NEW GOOGLE LOGIN — NO PROFILE — ASK ROLE */
       setShowRoleModal(true);
       setLoading(false);
     };
 
     run();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /* ================= ROLE SELECT ================= */
@@ -147,7 +152,6 @@ export default function AuthCallbackPage() {
         return;
       }
 
-    if (selectedRole === "student") {
       await createProfile(user, "student", false);
       return;
     }
@@ -210,7 +214,7 @@ export default function AuthCallbackPage() {
     localStorage.removeItem("signup_alumni_email");
 
     toast.success("Profile created!");
-    router.push(role === "student" ? "/studentprofile" : "/alumniprofile");
+    router.push(role === "student" ? "/profile/studentprofile" : "/profile/alumniprofile");
   };
 
   return (
