@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
@@ -14,12 +16,7 @@ import AlumniEmailModal from "@/components/Auth/AlumniEmailModal";
 import SocialSignUp from "@/components/Auth/SocialSignUp";
 import { checkProfileExists } from "@/utils/checkProfileExists";
 import { isInstitutionalEmail } from "@/utils/checkStudentInstitutionalEmail";
-import { useSearchParams } from "next/navigation";
-
-
-
 const SignUp = () => {
-  
   const router = useRouter();
   const supabase = createClientComponentClient();
 
@@ -35,25 +32,27 @@ const SignUp = () => {
 
   const [inlineError, setInlineError] = useState<string | null>(null);
 
-  const searchParams = useSearchParams();
+  // Read 'error' from URL on client-side (avoid useSearchParams in SSR)
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const error = params.get("error");
+      if (error) {
+        const decoded = decodeURIComponent(error);
+        setInlineError(decoded);
+        toast.error(decoded);
 
-useEffect(() => {
-  const error = searchParams.get("error");
-  if (error) {
-    const decoded = decodeURIComponent(error);
-    setInlineError(decoded);
-    toast.error(decoded);
-
-    // If the callback redirected here due to student email domain, pre-select student
-    // so the inline banner is visible and user can correct their email.
-    const lower = decoded.toLowerCase();
-    if (lower.includes("institutional") || lower.includes("@modyuniversity")) {
-      setRole("student");
-      localStorage.setItem("signup_role", "student");
-      setShowAlumniModal(false);
+        const lower = decoded.toLowerCase();
+        if (lower.includes("institutional") || lower.includes("@modyuniversity")) {
+          setRole("student");
+          localStorage.setItem("signup_role", "student");
+          setShowAlumniModal(false);
+        }
+      }
+    } catch (e) {
+      /* ignore */
     }
-  }
-}, [searchParams]);
+  }, []);
 
 
   // ✅ SHOW SIGNUP ERROR FROM AUTH CALLBACK (ONE TIME)

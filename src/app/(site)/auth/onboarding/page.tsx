@@ -1,7 +1,9 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import toast from "react-hot-toast";
 
@@ -11,10 +13,19 @@ import Loader from "@/components/Common/Loader";
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const params = useSearchParams();
   const supabase = createClientComponentClient();
 
-  const emailFromCallback = params.get("email");
+  const [emailFromCallback, setEmailFromCallback] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const email = params.get("email");
+      setEmailFromCallback(email);
+    } catch (e) {
+      setEmailFromCallback(null);
+    }
+  }, []);
 
   const [role, setRole] = useState<"student" | "alumni" | null>(null);
   const [loading, setLoading] = useState(false);

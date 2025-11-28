@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { createClient } from "@supabase/supabase-js";
 
 type Params = { params: { id: string } };
 
@@ -16,8 +17,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
       body,
       created_at,
       responder_id,
-      profiles!inner(full_name, role),
-      answer_upvotes(count)
+      profiles!answers_responder_id_fkey(full_name, role)
     `
     )
     .eq("question_id", params.id)
@@ -48,25 +48,47 @@ export async function POST(req: NextRequest, { params }: Params) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-  }
+  // Allow anonymous answers: do not require authentication
+  const responderId = user ? user.id : null;
 
   const body = await req.json();
   const { text } = body;
 
-  const { data, error } = await supabase
-    .from("answers")
-    .insert({
-      question_id: params.id,
-      responder_id: user.id,
-      body: text,
-    })
-    .select()
-    .single();
+  let data: any = null;
+  let error: any = null;
+
+  if (responderId !== null) {
+    const res = await supabase
+      .from("answers")
+      .insert({ question_id: params.id, responder_id: responderId, body: text })
+      .select()
+      .single();
+    data = res.data;
+    error = res.error;
+  } else {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!url || !key) {
+      console.error("Missing SUPABASE_SERVICE_ROLE_KEY for anonymous inserts");
+      return NextResponse.json(
+        { error: "Server not configured to accept anonymous answers" },
+        { status: 500 }
+      );
+    }
+
+    // Use service-role key which bypasses RLS
+    const svc = createClient(url, key);
+    const res = await svc
+      .from("answers")
+      .insert({ question_id: params.id, responder_id: null, body: text })
+      .select()
+      .single();
+    data = res.data;
+    error = res.error;
+  }
 
   if (error) {
-    console.error(error);
+    console.error("Answer insert error:", error);
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 

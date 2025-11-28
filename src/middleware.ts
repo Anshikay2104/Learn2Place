@@ -13,7 +13,6 @@ export async function middleware(req: NextRequest) {
   const protectedRoutes = [
     "/companies",
     "/resources",
-    "/forum",
     "/search",
   ];
 
