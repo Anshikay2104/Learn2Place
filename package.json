@@ -9,8 +9,6 @@
     "lint": "next lint",
     "predeploy": "npm run build",
     "deploy": "touch out/.nojekyll && gh-pages -d out --dotfiles",
-
-  
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage"
