@@ -1,85 +1,76 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { createSupabaseBrowserClient } from "@/utils/supabase/client";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import type { User } from "@supabase/supabase-js";
-
-const supabase = createSupabaseBrowserClient();
 
 export default function AskQuestionForm() {
-  const [user, setUser] = useState<User | null>(null);
-  const [userLoaded, setUserLoaded] = useState(false);
+  const router = useRouter();
 
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [submitting, setSubmitting] = useState(false);
-
-  const router = useRouter();
-
-  useEffect(() => {
-    // Load current user from Supabase (OAuth session)
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user ?? null);
-      setUserLoaded(true);
-    });
-  }, []);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
+
     e.preventDefault();
-    if (!user) {
-      alert("Please sign in with Google first.");
+    setErrorMessage(null);
+    if (!title.trim() || !body.trim()) {
+      setErrorMessage("Please provide a title and description.");
       return;
     }
-
-    if (!title.trim() || !body.trim()) return;
 
     setSubmitting(true);
 
-    const { error } = await supabase.from("questions").insert({
-      title,
-      body,
-      asker_id: user.id, // must match profiles.id
-    });
+    try {
+      const url = new URL("/api/questions", window.location.href).toString();
+      console.log("Posting question to", url);
 
-    setSubmitting(false);
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, description: body }),
+      });
 
-    if (error) {
-      alert("Failed to post question: " + error.message);
-      return;
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        console.error("POST /api/questions failed", res.status, data);
+        throw new Error(data?.error || "Failed to post question");
+      }
+
+      const created = await res.json().catch(() => null);
+      console.log("Question posted successfully", created);
+      setTitle("");
+      setBody("");
+      // If API returned created question id, navigate to its thread so user can reply immediately
+      if (created && (created.id || created.data?.id)) {
+        const id = created.id ?? created.data?.id;
+        router.push(`/forum/${id}`);
+      } else {
+        router.refresh();
+      }
+    } catch (err: any) {
+      console.error(err);
+      setErrorMessage(err?.message || "Failed to post question");
+    } finally {
+      setSubmitting(false);
     }
-
-    setTitle("");
-    setBody("");
-    // refresh the server component list of questions
-    router.refresh();
   };
 
-  if (!userLoaded) {
-    return (
-      <div className="p-4 bg-white rounded-xl shadow text-sm text-gray-500">
-        Checking login status...
-      </div>
-    );
-  }
-
   return (
-    <div className="bg-white rounded-xl shadow p-4 mb-6">
-      <h2 className="text-lg font-semibold mb-2">Ask a Question</h2>
-
-      {!user && (
-        <p className="text-sm text-red-600 mb-3">
-          Please sign in with Google to ask or answer questions.
-        </p>
-      )}
+    <div className="bg-white rounded-xl shadow p-6 mb-6">
+      <h2 className="text-lg font-semibold mb-4">Ask a Question</h2>
 
       <form onSubmit={handleSubmit} className="space-y-3">
+        {errorMessage && (
+          <p className="text-sm text-red-600">{errorMessage}</p>
+        )}
         <input
           type="text"
           placeholder="Question title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          disabled={!user || submitting}
+          disabled={submitting}
           className="w-full border rounded-lg px-3 py-2"
         />
 
@@ -88,22 +79,17 @@ export default function AskQuestionForm() {
           placeholder="Describe your question..."
           value={body}
           onChange={(e) => setBody(e.target.value)}
-          disabled={!user || submitting}
+          disabled={submitting}
           className="w-full border rounded-lg px-3 py-2"
         />
 
         <button
           type="submit"
-          disabled={!user || submitting}
+          disabled={submitting}
           className="bg-indigo-600 text-white px-4 py-2 rounded-lg disabled:opacity-60"
         >
           {submitting ? "Posting..." : "Post Question"}
         </button>
-
-        <p className="mt-2 text-xs text-gray-500">
-          Only users with <code>role = "student"</code> in the <code>profiles</code> table
-          can post questions (enforced by RLS).
-        </p>
       </form>
     </div>
   );

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import AddExperienceForm from "./AddExperienceForm";

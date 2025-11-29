@@ -94,10 +94,9 @@ export default function AuthCallbackPage() {
         /* 2A — STUDENT EMAIL MUST BE INSTITUTIONAL */
         if (selectedRole === "student") {
           if (!lowerEmail.endsWith("@modyuniversity.ac.in")) {
-            toast.error("Students must use @modyuniversity.ac.in email.");
+            const errorMsg = encodeURIComponent("Students must sign up using their institutional email (@modyuniversity.ac.in).");
             await supabase.auth.signOut();
-            window.location.href =
-              "/auth/signin?invalid_student_email=true";
+            router.push(`/auth/signup?error=${errorMsg}`);
             return;
           }
         }
@@ -146,9 +145,9 @@ export default function AuthCallbackPage() {
     /* STUDENT RULE — MUST MATCH DOMAIN */
     if (selectedRole === "student") {
       if (!email.endsWith("@modyuniversity.ac.in")) {
-        toast.error("Use your institutional ID (@modyuniversity.ac.in).");
+        const errorMsg = encodeURIComponent("Students must sign up using their institutional email (@modyuniversity.ac.in).");
         await supabase.auth.signOut();
-        router.push("/auth/signin");
+        router.push(`/auth/signup?error=${errorMsg}`);
         return;
       }
 

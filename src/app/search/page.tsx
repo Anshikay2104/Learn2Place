@@ -1,18 +1,24 @@
 "use client";
 
-import { useEffect } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+export const dynamic = "force-dynamic";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
 export default function SearchPage() {
   const router = useRouter();
-  const params = useSearchParams();
   const supabase = createClientComponentClient();
 
-  const query = params.get("query")?.trim().toLowerCase();
+  const [query, setQuery] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!query) {
+    // Read query from window.search on the client to avoid useSearchParams prerender issues
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get("query")?.trim().toLowerCase();
+    setQuery(q ?? null);
+
+    if (!q) {
       router.replace("/");
       return;
     }
@@ -25,18 +31,18 @@ export default function SearchPage() {
 
       if (!user) {
         // Save where user wanted to go
-        localStorage.setItem("redirectAfterAuth", `/search?query=${encodeURIComponent(query)}`);
+        localStorage.setItem("redirectAfterAuth", `/search?query=${encodeURIComponent(q ?? "")}`);
         router.replace("/auth/signup");
         return;
       }
 
-      console.log("Searching for:", query);
+      console.log("Searching for:", q);
 
       // 1️⃣ Company search
       const { data: companies } = await supabase
         .from("companies")
         .select("slug, name")
-        .ilike("name", `%${query}%`)
+        .ilike("name", `%${q}%`)
         .limit(1);
 
       if (companies && companies.length > 0) {
@@ -55,7 +61,7 @@ export default function SearchPage() {
       };
 
       for (const [subject, keywords] of Object.entries(SUBJECT_KEYWORDS)) {
-        if (keywords.some((k) => query.includes(k))) {
+        if (keywords.some((k) => (q ?? "").includes(k))) {
           router.replace(`/resources/${subject}`);
           return;
         }
@@ -65,7 +71,7 @@ export default function SearchPage() {
       const { data: resources } = await supabase
         .from("resources")
         .select("subject_id, title")
-        .ilike("title", `%${query}%`)
+        .ilike("title", `%${q}%`)
         .limit(1);
 
       if (resources && resources[0]?.subject_id) {
@@ -74,13 +80,11 @@ export default function SearchPage() {
       }
 
       // 4️⃣ Not found
-      router.replace(
-        `/search/not-found?query=${encodeURIComponent(query)}`
-      );
+      router.replace(`/search/not-found?query=${encodeURIComponent(q ?? "")}`);
     };
 
     runSearch();
-  }, [query]);
+  }, []);
 
   return (
     <div className="flex items-center justify-center min-h-screen text-lg">

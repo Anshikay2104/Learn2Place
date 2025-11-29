@@ -1,9 +1,7 @@
 "use client";
 
-import { createClient } from "@supabase/supabase-js";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-
-// Simple browser client. No fancy typing so TS doesn’t complain.
-export const supabaseBrowser = createClient(supabaseUrl, supabaseAnonKey);
+export function createSupabaseBrowserClient() {
+  return createClientComponentClient();
+}
