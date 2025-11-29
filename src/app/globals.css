@@ -2,27 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Smooth scroll */
 html {
   scroll-behavior: smooth;
 }
 
-/* Prevent any overflow/white gaps EVER */
-html, body {
-  overflow-x: hidden !important;
-  overflow-y: auto;
-  margin: 0;
-  padding: 0;
-  width: 100%;
-  max-width: 100%;
-}
-
-/* Section padding */
 section {
   @apply py-20;
 }
 
-/* Slick styling */
 .slick-dots {
   color: #1A21BC;
 }
@@ -34,17 +21,4 @@ section {
 
 .slick-dots li button:before {
   font-size: 11px !important;
-}
-html {
-  font-size: 80%;
-}
-
-/* GLOBAL SITE SCALE — PERFECTLY CENTERED */
-#site-wrapper {
-  transform: scale(var(--site-scale));
-  transform-origin: top center;
-  width: var(--site-width);
-  margin-left: auto;
-  margin-right: auto;
-  position: relative;
 }
