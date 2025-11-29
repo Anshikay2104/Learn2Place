@@ -78,7 +78,7 @@ const Hero = () => {
 
   return (
     <section id="home-section" className="bg-slateGray">
-      <div className="container mx-auto lg:max-w-screen-xl md:max-w-screen-md px-4 pt-24">
+      <div className="container mx-auto lg:max-w-screen-xl md:max-w-screen-md px-4 pt-12">
         <div className="grid grid-cols-1 lg:grid-cols-12 items-center gap-4">
 
           {/* LEFT SIDE */}
