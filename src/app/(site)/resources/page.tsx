@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Plus } from "lucide-react";
 
 const SUBJECTS = [
   {
@@ -48,20 +49,43 @@ export default function ResourcesPage() {
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-10">
         {SUBJECTS.map((sub) => (
-          <Link key={sub.id} href={`/resources/${sub.id}`}>
-            <div className="bg-white rounded-2xl shadow-md hover:shadow-xl transition cursor-pointer border">
+          <div
+            key={sub.id}
+            className="bg-white rounded-2xl shadow-md hover:shadow-xl transition border"
+          >
+            {/* Subject Image */}
+            <Link href={`/resources/${sub.id}`}>
               <img
                 src={sub.img}
                 alt={sub.title}
-                className="w-full h-48 object-cover rounded-t-2xl"
+                className="w-full h-48 object-cover rounded-t-2xl cursor-pointer"
               />
+            </Link>
 
-              <div className="p-5">
-                <h2 className="text-xl font-semibold mb-2">{sub.title}</h2>
-                <p className="text-gray-600 text-sm">{sub.desc}</p>
-              </div>
+            <div className="p-5">
+              {/* Title */}
+              <Link href={`/resources/${sub.id}`}>
+                <h2 className="text-xl font-semibold mb-2 cursor-pointer">
+                  {sub.title}
+                </h2>
+              </Link>
+
+              {/* Description */}
+              <p className="text-gray-600 text-sm mb-4">{sub.desc}</p>
+
+              {/* Add Resource Button */}
+              <Link
+                href={`/resources/${sub.id}/add`}
+                className="w-full flex items-center justify-center gap-2 
+                bg-gradient-to-r from-indigo-500 to-purple-500 
+                text-white text-sm font-medium py-2 rounded-lg shadow 
+                hover:scale-105 transition"
+              >
+                <Plus className="w-4 h-4" />
+                Add Resource
+              </Link>
             </div>
-          </Link>
+          </div>
         ))}
       </div>
     </div>

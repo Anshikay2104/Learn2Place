@@ -18,32 +18,46 @@ const Header = () => {
 
   const [navbarOpen, setNavbarOpen] = useState(false);
   const [sticky, setSticky] = useState(false);
-  const [user, setUser] = useState<any>(null);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
 
+  const [loaded, setLoaded] = useState(false); // 🔥 prevents UI flash
+  const [user, setUser] = useState<any>(null);
+
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Fetch user on mount
+  // ======================================================
+  // AUTH HANDLING — FIXED
+  // ======================================================
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user);
-    });
+    async function loadUser() {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user || null);
+      setLoaded(true);
+    }
+
+    loadUser();
+
+    // 🔥 Listen for SIGN IN, SIGN OUT, TOKEN REFRESH
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUser(session?.user || null);
+      }
+    );
+
+    return () => listener.subscription.unsubscribe();
   }, []);
 
-  // Sticky header on scroll
+  // Sticky header
   useEffect(() => {
     const handleScroll = () => setSticky(window.scrollY >= 40);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Close avatar dropdown on outside click
+  // Close dropdown when clicking outside
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(e.target as Node)
-      ) {
+    const handler = (e: any) => {
+      if (!dropdownRef.current?.contains(e.target)) {
         setDropdownOpen(false);
       }
     };
@@ -51,30 +65,26 @@ const Header = () => {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+  // Logout
   const logout = async () => {
-    const { error } = await supabase.auth.signOut();
-
-    if (error) {
-      toast.error("Logout failed. Try again.");
-      return;
-    }
-
+    await supabase.auth.signOut();
     toast.success("Logged out!");
     setUser(null);
-
     router.replace("/");
-    router.refresh();
   };
 
   const getInitials = () => {
-    const name = user?.user_metadata?.name || user?.email || "";
+    const name = user?.user_metadata?.full_name || user?.email || "";
     return name
       .split(" ")
-      .filter(Boolean)
-      .map((w: string) => w[0])
-      .join("")
-      .toUpperCase();
+      .map((w: string) => w[0]?.toUpperCase())
+      .join("");
   };
+
+  // ======================================================
+  // PREVENT RENDER UNTIL LOADED (fixes ghost user issue)
+  // ======================================================
+  if (!loaded) return null;
 
   return (
     <header
@@ -83,52 +93,53 @@ const Header = () => {
       }`}
     >
       <div className="container mx-auto max-w-screen-xl flex items-center justify-between px-6">
+        
+        {/* Logo */}
         <div className="scale-110">
-            <Logo />
-      </div>
+          <Logo />
+        </div>
 
-
-        {/* DESKTOP NAV */}
+        {/* Desktop Nav */}
         <nav className="hidden lg:flex items-center gap-10 ml-6">
           {headerData
-            .filter((item) => item.label !== "Profile") // remove profile item completely
+            .filter((item) => item.label !== "Profile")
             .map((item, index) => (
               <HeaderLink key={index} item={item} />
             ))}
         </nav>
 
-        {/* RIGHT SIDE */}
+        {/* Right Side */}
         <div className="flex items-center gap-4">
-          {user ? (
-            <>
-              {/* Avatar + Dropdown */}
-              <div className="relative" ref={dropdownRef}>
-                <div
-                  className="w-9 h-9 rounded-full bg-purple-600 text-white flex items-center justify-center cursor-pointer font-bold text-sm"
-                  onClick={() => setDropdownOpen((prev) => !prev)}
-                >
-                  {getInitials()}
-                </div>
 
-                {dropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-40 bg-white rounded-md shadow p-2 z-50">
-                    <Link
-                      href="/profile"
-                      className="block px-4 py-2 hover:bg-gray-100 rounded-md"
-                    >
-                      My Profile
-                    </Link>
-                    <button
-                      onClick={logout}
-                      className="w-full px-4 py-2 text-left text-red-600 hover:bg-gray-100 rounded-md"
-                    >
-                      Logout
-                    </button>
-                  </div>
-                )}
+          {/* ===================== USER LOGGED IN ===================== */}
+          {user ? (
+            <div className="relative" ref={dropdownRef}>
+              <div
+                onClick={() => setDropdownOpen((prev) => !prev)}
+                className="w-9 h-9 rounded-full bg-purple-600 text-white flex items-center justify-center cursor-pointer font-bold text-sm"
+              >
+                {getInitials()}
               </div>
-            </>
+
+              {dropdownOpen && (
+                <div className="absolute right-0 mt-2 w-40 bg-white rounded-md shadow p-2 z-50">
+                  <Link
+                    href="/profile"
+                    className="block px-4 py-2 hover:bg-gray-100 rounded-md"
+                  >
+                    My Profile
+                  </Link>
+                  <button
+                    onClick={logout}
+                    className="w-full px-4 py-2 text-left text-red-600 hover:bg-gray-100 rounded-md"
+                  >
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
           ) : (
+            /* ===================== NO USER LOGGED IN ===================== */
             <>
               <Link
                 href="/auth/signin"
@@ -146,7 +157,7 @@ const Header = () => {
             </>
           )}
 
-          {/* Mobile menu button */}
+          {/* Mobile Menu Button */}
           <button
             className="lg:hidden p-2"
             onClick={() => setNavbarOpen(!navbarOpen)}
@@ -158,11 +169,11 @@ const Header = () => {
         </div>
       </div>
 
-      {/* MOBILE NAV */}
+      {/* Mobile Nav */}
       {navbarOpen && (
         <div className="lg:hidden fixed top-0 right-0 h-full w-72 bg-white shadow-lg p-6 z-50">
           {headerData
-            .filter((item) => item.label !== "Profile") // also remove here
+            .filter((item) => item.label !== "Profile")
             .map((item, index) => (
               <MobileHeaderLink key={index} item={item} />
             ))}
@@ -170,10 +181,7 @@ const Header = () => {
           {user ? (
             <div className="mt-6">
               <button
-                onClick={() => {
-                  setDropdownOpen(false);
-                  router.push("/profile");
-                }}
+                onClick={() => router.push("/profile")}
                 className="block text-center border px-4 py-2 rounded-lg mb-2"
               >
                 My Profile
@@ -194,6 +202,7 @@ const Header = () => {
               >
                 Sign In
               </Link>
+
               <Link
                 href="/auth/signup"
                 className="block bg-primary text-white px-4 py-2 rounded-lg mt-2 text-center"
