@@ -16,22 +16,27 @@ export const DocNavigation = () => {
   const DocsNav = [
     {
       id: 1,
-      navItem: "Package Versions",
+      navItem: "About US",
       hash: "version",
     },
     {
       id: 2,
-      navItem: "Pacakge Structure",
+      navItem: "Who are we?",
       hash: "structure",
     },
     {
       id: 3,
-      navItem: "Quick Start",
+      navItem: "AIM",
       hash: "start",
     },
     {
       id: 4,
-      navItem: "Project Configuration",
+      navItem: "Benefits of Learn2Place",
+      hash: "configuration",
+    },
+    {
+      id: 5,
+      navItem: "How You Can Help",
       hash: "configuration",
     },
   ];
