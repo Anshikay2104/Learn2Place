@@ -2,17 +2,27 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Smooth scrolling */
+/* Smooth scroll */
 html {
   scroll-behavior: smooth;
 }
 
-/* Default section padding */
+/* Prevent any overflow/white gaps EVER */
+html, body {
+  overflow-x: hidden !important;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Section padding */
 section {
   @apply py-20;
 }
 
-/* Slick carousel dots */
+/* Slick styling */
 .slick-dots {
   color: #1A21BC;
 }
@@ -25,18 +35,16 @@ section {
 .slick-dots li button:before {
   font-size: 11px !important;
 }
-
-/* --------------------------------------------- */
-/*  GLOBAL SITE SCALE (makes entire website smaller) */
-/* --------------------------------------------- */
-body {
-  transform: scale(0.85);        /* Change to 0.80 or 0.75 to be smaller */
-  transform-origin: top center;  
-  width: 117.65%;                /* MUST match scale → (1 / 0.85) = 117.65% */
+html {
+  font-size: 80%;
 }
+
+/* GLOBAL SITE SCALE — PERFECTLY CENTERED */
 #site-wrapper {
-  transform: scale(0.85);
+  transform: scale(var(--site-scale));
   transform-origin: top center;
-  width: 117.6470588235%;
-  margin: 0 auto;
+  width: var(--site-width);
+  margin-left: auto;
+  margin-right: auto;
+  position: relative;
 }

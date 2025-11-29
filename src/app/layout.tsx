@@ -19,32 +19,37 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
+
+      {/* PREVENT FIRST-LOAD SHIFT — SET SCALE BEFORE HYDRATION */}
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
+            document.documentElement.style.setProperty('--site-scale', '0.85');
+            document.documentElement.style.setProperty('--site-width', '117.6470588235%');
+          `,
+        }}
+      />
+
       <body className={font.className}>
 
-        {/* WRAPPER FOR GLOBAL WEBSITE SCALE */}
+        {/* WRAPPER USED FOR SCALING */}
         <div id="site-wrapper">
-
           <ThemeProvider
             attribute="class"
             enableSystem={true}
             defaultTheme="light"
           >
-            {/* HEADER */}
             <Header />
 
-            {/* MAIN CONTENT */}
             <main className="min-h-screen pt-20">
               {children}
             </main>
 
-            {/* FOOTER */}
             <Footer />
-
-            {/* SCROLL-TO-TOP BUTTON */}
             <ScrollToTop />
           </ThemeProvider>
-
         </div>
+
       </body>
     </html>
   );
