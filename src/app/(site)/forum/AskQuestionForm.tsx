@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 
-export default function AskQuestionForm() {
+export default function AskQuestionForm({ onClose }: { onClose?: () => void }) {
   const router = useRouter();
 
   const [title, setTitle] = useState("");
@@ -49,6 +49,9 @@ export default function AskQuestionForm() {
       } else {
         router.refresh();
       }
+
+      // close the modal if parent provided a closer
+      if (onClose) onClose();
     } catch (err: any) {
       console.error(err);
       setErrorMessage(err?.message || "Failed to post question");

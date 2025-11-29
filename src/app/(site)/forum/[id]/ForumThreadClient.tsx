@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { ThumbsUp } from "lucide-react";
 
 type Answer = {
   id: string;
@@ -24,6 +25,8 @@ export default function ForumThreadClient({ id }: Props) {
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [reply, setReply] = useState("");
   const [loading, setLoading] = useState(true);
+  const [upvoting, setUpvoting] = useState<string | null>(null);
+  const [userUpvotes, setUserUpvotes] = useState<Set<string>>(new Set());
 
   const fetchThread = async () => {
     setLoading(true);
@@ -68,16 +71,38 @@ export default function ForumThreadClient({ id }: Props) {
   };
 
   const handleUpvote = async (answerId: string) => {
-    const res = await fetch(`/api/answers/${answerId}/upvote`, {
-      method: "POST",
-    });
+    setUpvoting(answerId);
+    try {
+      const res = await fetch(`/api/answers/${answerId}/upvote`, {
+        method: "POST",
+      });
 
-    if (!res.ok) {
-      alert("Failed to upvote");
-      return;
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        alert(errData.error || "Failed to upvote");
+        setUpvoting(null);
+        return;
+      }
+
+      const result = await res.json();
+
+      // Update local upvote tracking
+      const newUpvotes = new Set(userUpvotes);
+      if (result.status === "added") {
+        newUpvotes.add(answerId);
+      } else if (result.status === "removed") {
+        newUpvotes.delete(answerId);
+      }
+      setUserUpvotes(newUpvotes);
+
+      // Refresh thread data
+      fetchThread();
+    } catch (err) {
+      console.error("Upvote error:", err);
+      alert("Failed to upvote answer");
+    } finally {
+      setUpvoting(null);
     }
-
-    fetchThread();
   };
 
   if (loading) {
@@ -108,22 +133,31 @@ export default function ForumThreadClient({ id }: Props) {
             {answers.map((a) => (
               <div
                 key={a.id}
-                className="border rounded-lg p-3 bg-gray-50 flex justify-between gap-4"
+                className="border rounded-lg p-4 bg-gray-50 flex justify-between gap-4"
               >
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">
+                <div className="flex-1">
+                  <p className="text-sm text-gray-600 mb-2">
                     <strong>{a.author_name}</strong>{" "}
                     <span className="text-xs text-gray-500">
                       ({a.author_role})
                     </span>
                   </p>
-                  <p>{a.body}</p>
+                  <p className="text-gray-800">{a.body}</p>
+                  <p className="text-xs text-gray-400 mt-2">
+                    {new Date(a.created_at).toLocaleString()}
+                  </p>
                 </div>
                 <button
                   onClick={() => handleUpvote(a.id)}
-                  className="self-start text-sm px-3 py-1 rounded-full border hover:bg-gray-100"
+                  disabled={upvoting === a.id}
+                  className={`self-start flex items-center gap-1 px-3 py-2 rounded-lg border whitespace-nowrap transition ${
+                    userUpvotes.has(a.id)
+                      ? "bg-indigo-100 border-indigo-300 text-indigo-700"
+                      : "hover:bg-gray-100"
+                  } ${upvoting === a.id ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
-                  👍 {a.upvotes}
+                  <ThumbsUp size={16} />
+                  <span>{a.upvotes}</span>
                 </button>
               </div>
             ))}
