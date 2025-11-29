@@ -58,9 +58,9 @@ const Courses = () => {
 
     return (
         <section id="courses">
-            <div className='container mx-auto lg:max-w-screen-xl md:max-w-screen-md px-4'>
+            <div className='container mx-auto lg:max-w-screen-xl md:max-w-screen-md px-1'>
                 <div className="sm:flex justify-between items-center mb-20">
-                    <h2 className="text-midnight_text text-4xl lg:text-5xlfont bold mb-5 md:mb-0">Popular Achievements.</h2>
+                    <h2 className="text-midnight_text text-5xl lg:text-5xlfont bold mb-5 md:mb-0">Popular Achievements.</h2>
                     <Link href={'/'} className="text-primary text-lg font-medium hover:tracking-widest duration-500">Explore more&nbsp;&gt;&nbsp;</Link>
                 </div>
                 <Slider {...settings}>
@@ -69,16 +69,16 @@ const Courses = () => {
                             <div className="bg-white m-3 mb-12 px-3 pt-3 pb-12 shadow-course-shadow rounded-2xl h-[480px] flex flex-col justify-between">
 
                                 <div className="relative bg-primary/10 rounded-3xl flex items-center justify-center text-center h-[60%] p-6">
-                                <p className="text-xl lg:text-xl text-gray-800 leading-relaxed">
+                                <p className="text-l lg:text-l text-gray-800 leading-relaxed">
                                     “This is a sample experience post text. The user’s story or summary will appear here and take up most of the card.”
                                 </p>
                                 </div>
                                 <div className="px-3 pt-6">
-                                    <Link href="#" className='text-2xl font-bold text-black max-w-75% inline-block'>{items.name}</Link>
+                                    <Link href="#" className='text-xl font-bold text-black max-w-75% inline-block'>{items.name}</Link>
                                     
                                     <div className="flex justify-between items-center py-6 border-b">
                                         <div className="flex items-center gap-4">
-                                        <h3 className="text-blue-500 text-xl">
+                                        <h3 className="text-blue-500 text-l">
                                             {items.role}
                                             {items.company ? `, ${items.company}` : ""}
                                         </h3>
