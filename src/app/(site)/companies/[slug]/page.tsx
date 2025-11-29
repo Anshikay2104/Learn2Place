@@ -27,9 +27,7 @@ export default function CompanyOverviewPage() {
     const loadExperiences = async () => {
       const { data, error } = await supabase
         .from("company_experiences")
-        .select(
-          "id, company_id, year, hiring_role, process_overview"
-        )
+        .select("id, company_id, year, hiring_role, process_overview")
         .eq("company_id", slug)
         .order("year", { ascending: false });
 
@@ -44,17 +42,13 @@ export default function CompanyOverviewPage() {
   }, [slug]);
 
   if (loading) {
-    return (
-      <div className="p-6 text-lg">Loading interviews...</div>
-    );
+    return <div className="p-6 text-lg">Loading interviews...</div>;
   }
 
   if (!experiences.length) {
     return (
       <div className="max-w-4xl mx-auto p-6">
-        <h1 className="text-2xl font-bold capitalize">
-          {slug}
-        </h1>
+        <h1 className="text-2xl font-bold capitalize">{slug}</h1>
         <p className="mt-4 text-gray-600">
           No interview experiences found yet.
         </p>
@@ -62,7 +56,7 @@ export default function CompanyOverviewPage() {
     );
   }
 
-  /* ✅ UNIQUE YEARS — SAFE */
+  /* ✅ UNIQUE YEARS */
   const years: number[] = Array.from(
     new Set(
       experiences
@@ -95,23 +89,33 @@ export default function CompanyOverviewPage() {
         {experiences.map((exp) => (
           <div
             key={exp.id}
-            className="border rounded-xl p-5 shadow-sm hover:shadow transition"
+            className="rounded-xl border bg-white p-6 shadow-sm hover:shadow-md transition"
           >
-            <h3 className="text-lg font-semibold">
-              {exp.hiring_role || "Role not specified"}
-            </h3>
+            {/* ✅ Person Name */}
+            <h3 className="text-xl font-semibold mb-1">Anonymous</h3>
 
-            {exp.year && (
-              <p className="text-sm text-gray-500">
-                Year: {exp.year}
-              </p>
-            )}
+            {/* ✅ Current Company */}
+            <p className="text-sm text-gray-500 mb-2">
+              Current Company:{" "}
+              <span className="font-medium">Current</span>
+            </p>
 
-            {exp.process_overview && (
-              <p className="mt-3 text-gray-700">
-                {exp.process_overview.slice(0, 250)}...
+            {/* ✅ Role + Experience (Grouped) */}
+            <div className="space-y-1">
+              <p>
+                <span className="font-semibold">Role:</span>{" "}
+                {exp.hiring_role || "Not specified"}
               </p>
-            )}
+
+              {exp.process_overview && (
+                <div>
+                  <p className="font-semibold">Experience:</p>
+                  <p className="text-gray-700 leading-7">
+                    {exp.process_overview}
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         ))}
       </div>
