@@ -13,34 +13,24 @@ export default function AuthCallbackPage() {
   const supabase = createClientComponentClient();
   const router = useRouter();
 
+  const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
+
   const [showRoleModal, setShowRoleModal] = useState(false);
+  const [showAlumniModal, setShowAlumniModal] = useState(false);
 
   const [alumniEmail, setAlumniEmail] = useState("");
-  const [showAlumniModal, setShowAlumniModal] = useState(false);
   const [alumniError, setAlumniError] = useState("");
   const [alumniLoading, setAlumniLoading] = useState(false);
 
-  const [loading, setLoading] = useState(true);
-
-  // ✅ Helper: redirect safely after auth (currently not used, but okay to keep)
-  const redirectAfterAuth = (fallbackRoute: string) => {
-    const redirectTo = localStorage.getItem("redirectAfterAuth");
-
-    if (redirectTo) {
-      localStorage.removeItem("redirectAfterAuth");
-      router.push(redirectTo);
-    } else {
-      router.push(fallbackRoute);
-    }
-  };
-
+  // ==================================================
+  // INITIAL AUTH CHECK
+  // ==================================================
   useEffect(() => {
-    const run = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+    async function init() {
+      const { data: { session } } = await supabase.auth.getSession();
 
+      // ❌ No valid session → force redirect
       if (!session?.user) {
         toast.error("Authentication failed.");
         router.push("/auth/signin");
@@ -49,6 +39,7 @@ export default function AuthCallbackPage() {
 
       const currentUser = session.user;
 
+      // ❌ Google returned no email
       if (!currentUser.email) {
         toast.error("Google did not return an email.");
         await supabase.auth.signOut();
@@ -56,53 +47,67 @@ export default function AuthCallbackPage() {
         return;
       }
 
-      const lowerEmail = currentUser.email.toLowerCase();
+      const email = currentUser.email.toLowerCase();
       setUser(currentUser);
 
-      /* 1️⃣ CHECK IF PROFILE ALREADY EXISTS */
-      const { exists, profile } = await checkProfileExists(
-        supabase,
-        lowerEmail
-      );
+      // ==================================================
+      // 1️⃣ CHECK IF PROFILE ALREADY EXISTS
+      // ==================================================
+      const { exists, profile } = await checkProfileExists(supabase, email);
 
       if (exists) {
         toast.success("Welcome back!");
+
         router.push(
-          profile.role === "student" ? "/profile/studentprofile" : "/profile/alumniprofile"
+          profile.role === "student"
+            ? "/profile/studentprofile"
+            : "/profile/alumniprofile"
         );
         return;
       }
 
-      /* 2️⃣ GOOGLE SIGNUP FLOW */
+      // ==================================================
+      // 2️⃣ NEW GOOGLE SIGNUP FLOW
+      // ==================================================
       const signupMode = localStorage.getItem("signup_mode");
 
       if (signupMode === "true") {
         localStorage.removeItem("signup_mode");
 
-        const selectedRole = localStorage.getItem("signup_role");
+        const role = localStorage.getItem("signup_role");
         const alumniVerified =
           localStorage.getItem("signup_alumni_verified") === "true";
         const verifiedAlumniEmail =
           localStorage.getItem("signup_alumni_email") || "";
 
-        if (!selectedRole) {
-          toast.error("Role selection missing. Please sign up again.");
+        if (!role) {
+          toast.error("Role not selected. Please try again.");
+          await supabase.auth.signOut();
           router.push("/auth/signup");
           return;
         }
 
-        /* 2A — STUDENT EMAIL MUST BE INSTITUTIONAL */
-        if (selectedRole === "student") {
-          if (!lowerEmail.endsWith("@modyuniversity.ac.in")) {
-            const errorMsg = encodeURIComponent("Students must sign up using their institutional email (@modyuniversity.ac.in).");
+        // -------------------------------
+        // 2A — STUDENT SIGNUP VALIDATION
+        // -------------------------------
+        if (role === "student") {
+          if (!email.endsWith("@modyuniversity.ac.in")) {
+            const msg = encodeURIComponent(
+              "Students must sign up using their institutional email (@modyuniversity.ac.in)."
+            );
+
             await supabase.auth.signOut();
-            router.push(`/auth/signup?error=${errorMsg}`);
+            router.push(`/auth/signup?error=${msg}`);
             return;
           }
+
+          return createProfile(currentUser, "student", false);
         }
 
-        /* 2B — ALUMNI MUST MATCH VERIFIED EMAIL */
-        if (selectedRole === "alumni") {
+        // -------------------------------
+        // 2B — ALUMNI SIGNUP VALIDATION
+        // -------------------------------
+        if (role === "alumni") {
           if (!alumniVerified || !verifiedAlumniEmail) {
             toast.error("Please verify your alumni email again.");
             await supabase.auth.signOut();
@@ -110,7 +115,7 @@ export default function AuthCallbackPage() {
             return;
           }
 
-          if (lowerEmail !== verifiedAlumniEmail.toLowerCase()) {
+          if (email !== verifiedAlumniEmail.toLowerCase()) {
             toast.error(
               `Please sign in using your verified alumni email: ${verifiedAlumniEmail}`
             );
@@ -118,58 +123,58 @@ export default function AuthCallbackPage() {
             router.push("/auth/signin");
             return;
           }
-        }
 
-        /* 3️⃣ CREATE PROFILE */
-        await createProfile(
-          currentUser,
-          selectedRole as "student" | "alumni",
-          selectedRole === "alumni"
-        );
-        return;
+          return createProfile(currentUser, "alumni", true);
+        }
       }
 
-      /* 4️⃣ NEW GOOGLE LOGIN — NO PROFILE — ASK ROLE */
+      // ==================================================
+      // 3️⃣ BRAND NEW GOOGLE USER → SHOW ROLE SELECTION
+      // ==================================================
       setShowRoleModal(true);
       setLoading(false);
-    };
+    }
 
-    run();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    init();
   }, []);
 
-  /* ================= ROLE SELECT ================= */
-  const handleRoleSelect = async (selectedRole: "student" | "alumni") => {
+  // ==================================================
+  // HANDLE ROLE SELECTION POPUP
+  // ==================================================
+  const handleRoleSelect = async (role: "student" | "alumni") => {
     const email = user?.email?.toLowerCase() || "";
 
-    /* STUDENT RULE — MUST MATCH DOMAIN */
-    if (selectedRole === "student") {
+    if (role === "student") {
       if (!email.endsWith("@modyuniversity.ac.in")) {
-        const errorMsg = encodeURIComponent("Students must sign up using their institutional email (@modyuniversity.ac.in).");
+        const msg = encodeURIComponent(
+          "Students must sign up using their institutional email (@modyuniversity.ac.in)."
+        );
+
         await supabase.auth.signOut();
-        router.push(`/auth/signup?error=${errorMsg}`);
+        router.push(`/auth/signup?error=${msg}`);
         return;
       }
 
-      await createProfile(user, "student", false);
-      return;
+      return createProfile(user, "student", false);
     }
 
-    /* ALUMNI → SHOW EMAIL VERIFICATION MODAL */
+    // Alumni → ask for verification
     setShowAlumniModal(true);
   };
 
-  /* ================= VERIFY ALUMNI ================= */
+  // ==================================================
+  // VERIFY ALUMNI EMAIL
+  // ==================================================
   const verifyAlumni = async () => {
     setAlumniError("");
 
     if (!alumniEmail.trim()) {
-      setAlumniError("Enter an email.");
+      setAlumniError("Enter your alumni email.");
       return;
     }
 
     if (alumniEmail.toLowerCase() !== user?.email?.toLowerCase()) {
-      setAlumniError(`Use the same email you logged in with.`);
+      setAlumniError("Use the same email you logged in with.");
       return;
     }
 
@@ -187,12 +192,15 @@ export default function AuthCallbackPage() {
       return;
     }
 
-    toast.success("Alumni email verified!");
+    toast.success("Alumni verified!");
     setShowAlumniModal(false);
-    await createProfile(user, "alumni", true);
+
+    return createProfile(user, "alumni", true);
   };
 
-  /* ================= CREATE PROFILE ================= */
+  // ==================================================
+  // PROFILE CREATION
+  // ==================================================
   const createProfile = async (
     currentUser: any,
     role: "student" | "alumni",
@@ -207,21 +215,31 @@ export default function AuthCallbackPage() {
       is_verified_alumni: alumniVerified,
     });
 
-    /* cleanup */
     localStorage.removeItem("signup_role");
     localStorage.removeItem("signup_alumni_verified");
     localStorage.removeItem("signup_alumni_email");
 
     toast.success("Profile created!");
-    router.push(role === "student" ? "/profile/studentprofile" : "/profile/alumniprofile");
+
+    router.push(
+      role === "student"
+        ? "/profile/studentprofile"
+        : "/profile/alumniprofile"
+    );
   };
 
+  // ==================================================
+  // UI
+  // ==================================================
   return (
     <div className="flex items-center justify-center min-h-screen text-xl font-semibold">
       {loading && "Processing..."}
 
       {showRoleModal && (
-        <RoleSelectionModal onSelect={handleRoleSelect} onClose={() => {}} />
+        <RoleSelectionModal
+          onSelect={handleRoleSelect}
+          onClose={() => {}}
+        />
       )}
 
       {showAlumniModal && (
