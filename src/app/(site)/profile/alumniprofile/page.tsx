@@ -5,7 +5,6 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
 import {
   Briefcase,
-  MapPin,
   MessageSquare,
   BookOpen,
   Edit,
@@ -17,7 +16,7 @@ import {
 import EditProfileModal from "@/components/Profile/EditProfileModal";
 
 // ===================================================================
-//                 BEAUTIFULLY REDESIGNED ALUMNI PROFILE PAGE
+//                 ALUMNI PROFILE PAGE – FINAL FIXED VERSION
 // ===================================================================
 
 export default function AlumniProfilePage() {
@@ -29,25 +28,26 @@ export default function AlumniProfilePage() {
 
   const [stats, setStats] = useState({
     resources: 0,
-    posts: 0,
+    posts: 0, // questions + answers
     upvotes: 0,
   });
 
   const [resources, setResources] = useState<any[]>([]);
   const [activity, setActivity] = useState({
-    questions: [],
-    answers: [],
+    questions: [] as any[],
+    answers: [] as any[],
   });
 
-  // ==============================================================
-  // Fetch data
-  // ==============================================================
+  // ==============================================================  
+  // Fetch Page Data
+  // ==============================================================  
   useEffect(() => {
     async function loadPage() {
       const { data: { user } } = await supabase.auth.getUser();
       setAuthUser(user);
       if (!user) return;
 
+      // ---- Profile ----
       const { data: profileData } = await supabase
         .from("profiles")
         .select("*")
@@ -56,30 +56,39 @@ export default function AlumniProfilePage() {
 
       setProfile(profileData);
 
-      // --- Stats ---
+      // ---- Count Resources ----
       const { count: resourcesCount } = await supabase
         .from("resources")
         .select("*", { count: "exact", head: true })
         .eq("user_id", user.id);
 
-      const { count: postsCount } = await supabase
-        .from("forum_questions")
+      // ---- Count Questions ----
+      const { count: questionCount } = await supabase
+        .from("questions")
         .select("*", { count: "exact", head: true })
-        .eq("user_id", user.id);
+        .eq("asker_id", user.id);
 
+      // ---- Count Answers ----
+      const { count: answerCount } = await supabase
+        .from("answers")
+        .select("*", { count: "exact", head: true })
+        .eq("responder_id", user.id);
+
+      // ---- Fetch IDs for Upvotes ----
       const { data: userQuestions } = await supabase
-        .from("forum_questions")
+        .from("questions")
         .select("id")
-        .eq("user_id", user.id);
+        .eq("asker_id", user.id);
 
       const { data: userAnswers } = await supabase
-        .from("forum_answers")
+        .from("answers")
         .select("id")
-        .eq("user_id", user.id);
+        .eq("responder_id", user.id);
 
-      const questionIds = userQuestions?.map(q => q.id) || [];
-      const answerIds = userAnswers?.map(a => a.id) || [];
+      const questionIds = userQuestions?.map((q) => q.id) || [];
+      const answerIds = userAnswers?.map((a) => a.id) || [];
 
+      // ---- Upvotes on Questions ----
       const { count: qUpvotes } = await supabase
         .from("votes")
         .select("*", { count: "exact", head: true })
@@ -87,6 +96,7 @@ export default function AlumniProfilePage() {
         .eq("vote", 1)
         .in("target_id", questionIds);
 
+      // ---- Upvotes on Answers ----
       const { count: aUpvotes } = await supabase
         .from("votes")
         .select("*", { count: "exact", head: true })
@@ -96,11 +106,11 @@ export default function AlumniProfilePage() {
 
       setStats({
         resources: resourcesCount || 0,
-        posts: postsCount || 0,
+        posts: (questionCount || 0) + (answerCount || 0),
         upvotes: (qUpvotes || 0) + (aUpvotes || 0),
       });
 
-      // --- Resources ---
+      // ---- Resources List ----
       const { data: userResources } = await supabase
         .from("resources")
         .select("*")
@@ -109,25 +119,25 @@ export default function AlumniProfilePage() {
 
       setResources(userResources || []);
 
-      // --- Recent Activity ---
+      // ---- Recent Activity ----
       const { data: recentQ } = await supabase
-        .from("forum_questions")
+        .from("questions")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("asker_id", user.id)
         .order("created_at", { ascending: false })
         .limit(5);
 
       const { data: recentA } = await supabase
-        .from("forum_answers")
+        .from("answers")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("responder_id", user.id)
         .order("created_at", { ascending: false })
         .limit(5);
 
-      // setActivity({
-      //   questions: recentQ || [],
-      //   answers: recentA || [],
-      // });
+      setActivity({
+        questions: recentQ || [],
+        answers: recentA || [],
+      });
     }
 
     loadPage();
@@ -141,9 +151,12 @@ export default function AlumniProfilePage() {
     );
   }
 
-  // Initials Logic
+  // ==============================================================  
+  // Utility  
+  // ==============================================================  
+
   function getInitials(name: string, email: string) {
-    if (name) return name.split(" ").map(w => w[0]).join("").toUpperCase();
+    if (name) return name.split(" ").map((w) => w[0]).join("").toUpperCase();
     return email?.charAt(0).toUpperCase() || "U";
   }
 
@@ -154,10 +167,13 @@ export default function AlumniProfilePage() {
     window.location.href = "/auth/signin";
   }
 
+  // ==============================================================  
+  // Render  
+  // ==============================================================  
+
   return (
     <div className="bg-gray-50 min-h-screen pt-40 md:pt-48 px-4 sm:px-6 lg:px-8">
 
-      {/* EDIT PROFILE MODAL */}
       {showEdit && (
         <EditProfileModal
           user={authUser}
@@ -174,7 +190,6 @@ export default function AlumniProfilePage() {
         {/* LEFT CARD */}
         <aside className="bg-white rounded-3xl shadow-xl p-8 relative">
 
-          {/* EDIT ICON */}
           <button
             onClick={() => setShowEdit(true)}
             className="absolute top-5 right-5 text-gray-400 hover:text-indigo-600 transition"
@@ -182,10 +197,8 @@ export default function AlumniProfilePage() {
             <Edit className="w-6 h-6" />
           </button>
 
-          {/* PROFILE HEADER */}
           <div className="flex flex-col items-center">
-            <div className="w-32 h-32 rounded-full bg-indigo-600 text-white 
-                            flex items-center justify-center text-4xl font-extrabold shadow-lg">
+            <div className="w-32 h-32 rounded-full bg-indigo-600 text-white flex items-center justify-center text-4xl font-extrabold shadow-lg">
               {initials}
             </div>
 
@@ -193,8 +206,7 @@ export default function AlumniProfilePage() {
               {profile.full_name}
             </h1>
 
-            <span className="mt-3 px-4 py-1 rounded-full bg-indigo-100 
-                             text-indigo-700 font-semibold text-sm">
+            <span className="mt-3 px-4 py-1 rounded-full bg-indigo-100 text-indigo-700 font-semibold text-sm">
               Alumni
             </span>
 
@@ -203,7 +215,6 @@ export default function AlumniProfilePage() {
             </p>
           </div>
 
-          {/* DETAILS */}
           <div className="mt-8 pt-6 border-t border-gray-200">
             <h3 className="text-sm font-semibold text-gray-500 tracking-wide">DETAILS</h3>
 
@@ -218,11 +229,6 @@ export default function AlumniProfilePage() {
                 <Award className="w-5 h-5 mr-3 text-gray-400" />
                 <span>Class of {profile.passing_year || "N/A"}</span>
               </li>
-
-              {/* <li className="flex items-center">
-                <MapPin className="w-5 h-5 mr-3 text-gray-400" />
-                <span>{profile.location || "Location not set"}</span>
-              </li> */}
 
               <li className="flex items-center">
                 <Briefcase className="w-5 h-5 mr-3 text-gray-400" />
@@ -239,14 +245,12 @@ export default function AlumniProfilePage() {
         {/* RIGHT CONTENT */}
         <main className="lg:col-span-2 space-y-10">
 
-          {/* STATS */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             <StatCard title="Resources Shared" value={stats.resources} icon={BookOpen} />
             <StatCard title="Forum Posts" value={stats.posts} icon={MessageSquare} />
             <StatCard title="Upvotes Received" value={stats.upvotes} icon={Award} />
           </div>
 
-          {/* RESOURCES */}
           <section className="bg-white rounded-3xl shadow-xl p-8">
             <h2 className="text-xl font-bold text-gray-900 mb-6">Shared Resources</h2>
 
@@ -255,7 +259,10 @@ export default function AlumniProfilePage() {
             ) : (
               <ul className="space-y-4">
                 {resources.map((res) => (
-                  <li key={res.id} className="p-4 bg-gray-50 rounded-xl border hover:shadow-md transition">
+                  <li
+                    key={res.id}
+                    className="p-4 bg-gray-50 rounded-xl border hover:shadow-md transition"
+                  >
                     <p className="font-semibold text-gray-900">{res.title}</p>
                     {res.description && (
                       <p className="text-gray-600 text-sm mt-1">{res.description}</p>
@@ -266,7 +273,7 @@ export default function AlumniProfilePage() {
             )}
           </section>
 
-          {/* ACTIVITY */}
+          {/* RECENT ACTIVITY */}
           <section className="bg-white rounded-3xl shadow-xl p-8">
             <h2 className="text-xl font-bold text-gray-900 mb-6">Recent Forum Activity</h2>
 
@@ -274,24 +281,36 @@ export default function AlumniProfilePage() {
               <p className="text-gray-500">No activity yet.</p>
             ) : (
               <div className="space-y-5">
+
                 {activity.questions.map((q) => (
-                  <div key={q.id} className="p-4 bg-gray-50 border rounded-xl hover:shadow-md transition">
+                  <div
+                    key={q.id}
+                    className="p-4 bg-gray-50 border rounded-xl hover:shadow-md transition"
+                  >
                     <p className="font-semibold">{q.title}</p>
-                    <p className="text-gray-500 text-sm">{new Date(q.created_at).toLocaleString()}</p>
+                    <p className="text-gray-500 text-sm">
+                      {q.created_at ? new Date(q.created_at).toLocaleString() : ""}
+                    </p>
                   </div>
                 ))}
 
                 {activity.answers.map((a) => (
-                  <div key={a.id} className="p-4 bg-gray-50 border rounded-xl hover:shadow-md transition">
+                  <div
+                    key={a.id}
+                    className="p-4 bg-gray-50 border rounded-xl hover:shadow-md transition"
+                  >
                     <p className="font-medium text-indigo-700">Answered a question</p>
-                    <p className="text-gray-600 text-sm">{a.body.slice(0, 100)}...</p>
+                    <p className="text-gray-600 text-sm">
+                      {(a.body || "").slice(0, 100)}...
+                    </p>
                   </div>
                 ))}
+
               </div>
             )}
           </section>
 
-          {/* LOGOUT BUTTON — BEAUTIFUL GRADIENT BOX */}
+          {/* LOGOUT */}
           <div className="flex justify-center">
             <button
               onClick={handleLogout}
@@ -304,7 +323,6 @@ export default function AlumniProfilePage() {
               Logout
             </button>
           </div>
-
         </main>
       </div>
     </div>
