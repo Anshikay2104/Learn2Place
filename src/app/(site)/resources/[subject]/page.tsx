@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 import { toast } from "react-hot-toast";
-import { Bookmark } from "lucide-react";
+import { Bookmark, Plus } from "lucide-react";
 
-const SUBJECT_DETAILS: any = {
+const SUBJECT_DETAILS: Record<string, any> = {
   dsa: {
     title: "Data Structures & Algorithms",
     banner: "/images/resources/dsa.jpg",
@@ -41,92 +42,111 @@ const SUBJECT_DETAILS: any = {
 
 export default function SubjectPage() {
   const supabase = createClientComponentClient();
-  const { subject } = useParams() as { subject?: string };
-  const info = subject ? SUBJECT_DETAILS[subject] : undefined;
+  const { subject } = useParams() as { subject: string };
+  const info = SUBJECT_DETAILS[subject];
 
   const [resources, setResources] = useState<any[]>([]);
-  const [bookmarks, setBookmarks] = useState<any[]>([]);
+  const [bookmarks, setBookmarks] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Load resources + bookmarks
+  // -----------------------------------------------------------
+  // LOAD RESOURCES + USER BOOKMARKS
+  // -----------------------------------------------------------
   useEffect(() => {
-    const loadEverything = async () => {
+    async function loadPage() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
 
-        // LOAD RESOURCES
-        const { data: resourceData } = await supabase
+        // Fetch resources
+        const { data: res } = await supabase
           .from("resources")
           .select("*")
           .eq("subject_id", subject)
           .order("created_at", { ascending: false });
 
-        setResources(resourceData || []);
+        setResources(res || []);
 
-        // LOAD USER BOOKMARKS
+        // Fetch bookmarks
         if (user) {
-          const { data: bookmarkData } = await supabase
+          const { data: bm } = await supabase
             .from("resource_bookmarks")
             .select("resource_id")
             .eq("user_id", user.id);
 
-          setBookmarks(bookmarkData || []);
+          setBookmarks(bm?.map((x) => x.resource_id) || []);
         }
-
       } catch (err) {
         console.error(err);
-        toast.error("Failed to load content");
+        toast.error("Something went wrong");
       } finally {
         setLoading(false);
       }
-    };
+    }
 
-    if (subject && info) loadEverything();
-    else setLoading(false);
+    loadPage();
   }, [subject]);
 
-  // Bookmark toggle function
+  // -----------------------------------------------------------
+  // TOGGLE BOOKMARK
+  // -----------------------------------------------------------
   async function toggleBookmark(resourceId: string) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return toast.error("Please login to bookmark");
 
-    const isBookmarked = bookmarks.some((b) => b.resource_id === resourceId);
+    const already = bookmarks.includes(resourceId);
 
-    if (isBookmarked) {
-      // REMOVE bookmark
+    if (already) {
       await supabase
         .from("resource_bookmarks")
         .delete()
         .eq("user_id", user.id)
         .eq("resource_id", resourceId);
 
-      setBookmarks((prev) => prev.filter((b) => b.resource_id !== resourceId));
+      setBookmarks((prev) => prev.filter((id) => id !== resourceId));
       toast("Removed from bookmarks");
     } else {
-      // ADD bookmark
       await supabase.from("resource_bookmarks").insert({
         user_id: user.id,
         resource_id: resourceId,
       });
 
-      setBookmarks((prev) => [...prev, { resource_id: resourceId }]);
+      setBookmarks((prev) => [...prev, resourceId]);
       toast.success("Bookmarked!");
     }
   }
 
-  if (loading) return <p className="px-6 py-10">Loading…</p>;
+  // -----------------------------------------------------------
+  // UI
+  // -----------------------------------------------------------
+  if (loading) return <div className="px-6 py-10">Loading…</div>;
 
   return (
     <div className="px-6 py-10 lg:px-20">
+
       {/* Banner Section */}
       <div className="mb-12">
         <img
-          src={info?.banner ?? "/images/resources/default.jpg"}
-          alt={info?.title ?? "Subject banner"}
+          src={info?.banner}
+          alt={info?.title}
           className="w-full h-64 object-cover rounded-xl shadow-lg"
         />
-        <h1 className="text-4xl font-bold mt-6">{info?.title ?? "Subject"}</h1>
-        <p className="text-lg text-gray-600 mt-2">{info?.desc ?? ""}</p>
+
+        <div className="flex items-center justify-between mt-6">
+          <div>
+            <h1 className="text-4xl font-bold">{info?.title}</h1>
+            <p className="text-lg text-gray-600 mt-2">{info?.desc}</p>
+          </div>
+
+          {/* ADD RESOURCE BUTTON (always visible) */}
+          <Link
+            href={`/resources/${subject}/add`}
+            className="px-5 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 
+                       text-white rounded-lg shadow hover:scale-105 transition flex items-center gap-2"
+          >
+            <Plus className="w-5 h-5" />
+            Add Resource
+          </Link>
+        </div>
       </div>
 
       {/* Resource Grid */}
@@ -135,9 +155,7 @@ export default function SubjectPage() {
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
           {resources.map((res) => {
-            const isBookmarked = bookmarks.some(
-              (b) => b.resource_id === res.id
-            );
+            const isBookmarked = bookmarks.includes(res.id);
 
             return (
               <div
@@ -158,8 +176,10 @@ export default function SubjectPage() {
                   />
                 </button>
 
+                {/* Resource Title */}
                 <h3 className="font-semibold text-lg mb-2">{res.title}</h3>
 
+                {/* File / Link */}
                 {res.resource_type === "file" ? (
                   <a
                     href={res.file_path}
@@ -178,6 +198,7 @@ export default function SubjectPage() {
                   </a>
                 )}
 
+                {/* Upload Date */}
                 <p className="text-xs text-gray-500 mt-3">
                   Uploaded on {new Date(res.created_at).toLocaleDateString()}
                 </p>

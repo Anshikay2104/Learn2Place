@@ -28,6 +28,22 @@ export async function GET(_req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  // Fetch upvote counts for all answers in one query
+  const answerIds = (data || []).map((a: any) => a.id);
+  const upvoteCounts: Record<string, number> = {};
+
+  if (answerIds.length > 0) {
+    const { data: upvotes, error: upvoteError } = await supabase
+      .from("answer_upvotes")
+      .select("answer_id");
+
+    if (!upvoteError && upvotes) {
+      for (const uv of upvotes) {
+        upvoteCounts[uv.answer_id] = (upvoteCounts[uv.answer_id] || 0) + 1;
+      }
+    }
+  }
+
   const formatted = (data || []).map((a: any) => ({
     id: a.id,
     body: a.body,
@@ -35,7 +51,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
     responder_id: a.responder_id,
     author_name: a.profiles?.full_name ?? "Unknown",
     author_role: a.profiles?.role ?? "",
-    upvotes: a.answer_upvotes?.[0]?.count ?? 0,
+    upvotes: upvoteCounts[a.id] || 0,
   }));
 
   return NextResponse.json(formatted);

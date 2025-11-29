@@ -20,25 +20,31 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={font.className}>
-        <ThemeProvider
-          attribute="class"
-          enableSystem={true}
-          defaultTheme="light"
-        >
-          {/* GLOBAL HEADER (fixed) */}
-          <Header />
 
-          {/* ✅ PAGE CONTENT OFFSET */}
-          <main className="min-h-screen pt-20">
-            {children}
-          </main>
+        {/* WRAPPER FOR GLOBAL WEBSITE SCALE */}
+        <div id="site-wrapper">
 
-          {/* GLOBAL FOOTER */}
-          <Footer />
+          <ThemeProvider
+            attribute="class"
+            enableSystem={true}
+            defaultTheme="light"
+          >
+            {/* HEADER */}
+            <Header />
 
-          {/* SCROLL TO TOP BTN */}
-          <ScrollToTop />
-        </ThemeProvider>
+            {/* MAIN CONTENT */}
+            <main className="min-h-screen pt-20">
+              {children}
+            </main>
+
+            {/* FOOTER */}
+            <Footer />
+
+            {/* SCROLL-TO-TOP BUTTON */}
+            <ScrollToTop />
+          </ThemeProvider>
+
+        </div>
       </body>
     </html>
   );

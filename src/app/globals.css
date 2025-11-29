@@ -2,14 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Smooth scrolling */
 html {
   scroll-behavior: smooth;
 }
 
+/* Default section padding */
 section {
   @apply py-20;
 }
 
+/* Slick carousel dots */
 .slick-dots {
   color: #1A21BC;
 }
@@ -21,4 +24,19 @@ section {
 
 .slick-dots li button:before {
   font-size: 11px !important;
+}
+
+/* --------------------------------------------- */
+/*  GLOBAL SITE SCALE (makes entire website smaller) */
+/* --------------------------------------------- */
+body {
+  transform: scale(0.85);        /* Change to 0.80 or 0.75 to be smaller */
+  transform-origin: top center;  
+  width: 117.65%;                /* MUST match scale → (1 / 0.85) = 117.65% */
+}
+#site-wrapper {
+  transform: scale(0.85);
+  transform-origin: top center;
+  width: 117.6470588235%;
+  margin: 0 auto;
 }
