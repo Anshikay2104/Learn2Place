@@ -17,7 +17,7 @@ type Props = {
   totalCount: number;
 };
 
-const QUESTIONS_PER_PAGE = 15;
+const QUESTIONS_PER_PAGE = 5;
 
 export default function ForumPagination({ initialQuestions, totalCount }: Props) {
   const [currentPage, setCurrentPage] = useState(1);

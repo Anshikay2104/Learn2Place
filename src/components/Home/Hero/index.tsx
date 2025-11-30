@@ -12,14 +12,11 @@ const Hero = () => {
   const supabase = createClientComponentClient();
   const router = useRouter();
 
-  // ✅ FIX 1: move inside component
   const [searchQuery, setSearchQuery] = useState("");
-
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAlumni, setIsAlumni] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // 🔐 Fetch user + role
   useEffect(() => {
     const loadProfile = async () => {
       const {
@@ -41,9 +38,7 @@ const Hero = () => {
         .maybeSingle();
 
       if (data) {
-        setIsAlumni(
-          data.role === "alumni" && data.is_verified_alumni === true
-        );
+        setIsAlumni(data.role === "alumni" && data.is_verified_alumni === true);
       }
 
       setLoading(false);
@@ -52,7 +47,6 @@ const Hero = () => {
     loadProfile();
   }, []);
 
-  // ✅ FIX 2: correct search handler
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
 
@@ -60,7 +54,6 @@ const Hero = () => {
       data: { user },
     } = await supabase.auth.getUser();
 
-    // ❌ Not logged in
     if (!user) {
       localStorage.setItem(
         "redirectAfterAuth",
@@ -70,10 +63,7 @@ const Hero = () => {
       return;
     }
 
-    // ✅ Logged in → pass query
-    router.push(
-      `/search?query=${encodeURIComponent(searchQuery.trim())}`
-    );
+    router.push(`/search?query=${encodeURIComponent(searchQuery.trim())}`);
   };
 
   return (
@@ -81,13 +71,10 @@ const Hero = () => {
       <div className="container mx-auto lg:max-w-screen-xl md:max-w-screen-md px-4 pt-12">
         <div className="grid grid-cols-1 lg:grid-cols-12 items-center gap-4">
 
-          {/* LEFT SIDE */}
+          {/* LEFT */}
           <div className="col-span-6 flex flex-col gap-8">
             <div className="flex gap-2 mx-auto lg:mx-0">
-              <Icon
-                icon="solar:verified-check-bold"
-                className="text-success text-xl"
-              />
+              <Icon icon="solar:verified-check-bold" className="text-success text-xl" />
               <p className="text-success text-sm font-semibold">
                 Get in touch with the amazing Alumni !!
               </p>
@@ -98,11 +85,9 @@ const Hero = () => {
             </h1>
 
             <h3 className="text-black/70 text-lg">
-              Build skills with our resources and alumni experiences from
-              world-class companies.
+              Build skills with our resources and alumni experiences from world-class companies.
             </h3>
 
-            {/* MAIN LOGIC */}
             {loading ? (
               <p>Loading...</p>
             ) : isAlumni ? (
@@ -112,55 +97,47 @@ const Hero = () => {
                 </button>
               </Link>
             ) : isLoggedIn ? (
-              // ✅ SEARCH BOX (logged in users)
-              <div className="relative rounded-full pt-4">
-                <input
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                  className="py-6 lg:py-7 pl-8 pr-24 text-lg w-full text-black rounded-full shadow-input-shadow bg-white"
-                  placeholder="Search companies, resources..."
-                />
-
-                <button
-                  onClick={handleSearch}
-                  className="bg-secondary p-5 rounded-full absolute right-2 top-2 hover:scale-105 transition"
-                >
-                  <Icon
-                    icon="solar:magnifer-linear"
-                    className="text-white text-3xl"
+              // SEARCH BOX FIXED
+              <div className="pt-4">
+                <div className="flex items-center w-full bg-white rounded-full shadow-input-shadow pl-6 pr-3 py-3 lg:py-4">
+                  <input
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                    className="flex-1 text-lg text-black bg-transparent outline-none"
+                    placeholder="Search companies, resources..."
                   />
-                </button>
+
+                  <button
+                    onClick={handleSearch}
+                    className="flex items-center justify-center w-14 h-14 rounded-full bg-secondary hover:scale-105 transition"
+                  >
+                    <Icon icon="solar:magnifer-linear" className="text-white text-3xl" />
+                  </button>
+                </div>
               </div>
             ) : (
-              // 🔒 Not logged in → show signup prompt + disabled search
+              // NOT LOGGED IN SEARCH (disabled)
               <div className="flex flex-col gap-3 pt-4">
                 <div className="bg-yellow-50 border border-yellow-300 rounded-lg p-3 flex items-start gap-2">
-                  <Icon
-                    icon="solar:info-circle-bold"
-                    className="text-yellow-600 text-xl flex-shrink-0 mt-0.5"
-                  />
+                  <Icon icon="solar:info-circle-bold" className="text-yellow-600 text-xl" />
                   <p className="text-sm text-yellow-800">
                     <span className="font-semibold">Sign up</span> before using this functionality
                   </p>
                 </div>
 
-                <div className="relative rounded-full">
+                <div className="flex items-center w-full bg-white rounded-full shadow-input-shadow pl-6 pr-3 py-3 opacity-60 cursor-not-allowed">
                   <input
                     disabled
-                    className="py-6 lg:py-7 pl-8 pr-24 text-lg w-full text-black rounded-full bg-white cursor-not-allowed shadow-input-shadow opacity-60"
+                    className="flex-1 text-lg bg-transparent outline-none"
                     placeholder="Search companies, resources..."
                   />
 
                   <button
                     onClick={() => router.push("/auth/signup")}
-                    className="bg-secondary p-5 rounded-full absolute right-2 top-2 hover:scale-105 transition"
-                    title="Sign up to search"
+                    className="flex items-center justify-center w-14 h-14 rounded-full bg-secondary hover:scale-105 transition"
                   >
-                    <Icon
-                      icon="solar:magnifer-linear"
-                      className="text-white text-3xl"
-                    />
+                    <Icon icon="solar:magnifer-linear" className="text-white text-3xl" />
                   </button>
                 </div>
               </div>
@@ -182,7 +159,7 @@ const Hero = () => {
             </div>
           </div>
 
-          {/* RIGHT IMAGE */}
+          {/* RIGHT */}
           <div className="col-span-6 flex justify-center">
             <Image
               src={`${getImagePrefix()}images/banner/mahila.png`}
@@ -192,7 +169,6 @@ const Hero = () => {
               priority
             />
           </div>
-
         </div>
       </div>
     </section>

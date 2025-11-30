@@ -251,7 +251,7 @@ export default function AddExperienceForm({ userId }: AddExperienceFormProps) {
       {/* Resource Category */}
       <div>
         <label className="block font-medium mb-2">Resource Category</label>
-        <select name="subject_id" required className="w-full border px-4 py-3 rounded-xl">
+        <select name="subject_id" className="w-full border px-4 py-3 rounded-xl">
           <option value="">Select category</option>
           <option value="dsa">Data Structures & Algorithms</option>
           <option value="cn">Computer Networks</option>

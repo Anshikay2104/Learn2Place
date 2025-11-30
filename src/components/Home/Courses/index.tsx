@@ -61,7 +61,7 @@ const Courses = () => {
             <div className='container mx-auto lg:max-w-screen-xl md:max-w-screen-md px-1'>
                 <div className="sm:flex justify-between items-center mb-20">
                     <h2 className="text-midnight_text text-5xl lg:text-5xlfont bold mb-5 md:mb-0">Popular Achievements.</h2>
-                    <Link href={'/'} className="text-primary text-lg font-medium hover:tracking-widest duration-500">Explore more&nbsp;&gt;&nbsp;</Link>
+                    {/* <Link href={'/'} className="text-primary text-lg font-medium hover:tracking-widest duration-500">Explore more&nbsp;&gt;&nbsp;</Link> */}
                 </div>
                 <Slider {...settings}>
                     {courseData.map((items, i) => (
