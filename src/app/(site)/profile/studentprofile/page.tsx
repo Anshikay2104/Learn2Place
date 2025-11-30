@@ -16,7 +16,10 @@ export default function StudentProfilePage() {
 
   useEffect(() => {
     async function load() {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
       setAuthUser(user);
       if (!user) return;
 
@@ -26,9 +29,10 @@ export default function StudentProfilePage() {
         .select("*")
         .eq("id", user.id)
         .single();
+
       setProfile(profileData);
 
-      // RESOURCE BOOKMARKS
+      // BOOKMARKED RESOURCES
       const { data: bookmarkData } = await supabase
         .from("resource_bookmarks")
         .select("resource:resource_id(*)")
@@ -36,32 +40,35 @@ export default function StudentProfilePage() {
 
       setBookmarkedResources((bookmarkData || []).map((b) => b.resource));
 
-      // RECENTLY VIEWED ALUMNI
-      const { data: recent } = await supabase
-        .from("recently_viewed_alumni")
-        .select("*, alumni:alumni_id(full_name, id)")
-        .eq("user_id", user.id)
-        .order("viewed_at", { ascending: false })
-        .limit(5);
+      // FETCH ONLY TOP 3 MOST RECENT ALUMNI
+      const { data: alumniList } = await supabase
+        .from("profiles")
+        .select("id, full_name, current_role, company_id, passing_year")
+        .eq("role", "alumni")
+        .order("updated_at", { ascending: false })
+        .limit(3);   // 🔥 TOP 3 ONLY
 
-      setRecentAlumni(recent || []);
+      setRecentAlumni(alumniList || []);
     }
 
     load();
   }, []);
 
   if (!authUser || !profile) {
-    return <div className="pt-48 text-center text-xl font-semibold">Loading…</div>;
+    return (
+      <div className="pt-48 text-center text-xl font-semibold">
+        Loading…
+      </div>
+    );
   }
 
-  // Initial letters for avatar
+  // Initials
   function getInitials(name?: string, email?: string) {
-    if (name) return name.split(" ").map(w => w[0]).join("").toUpperCase();
+    if (name) return name.split(" ").map((w) => w[0]).join("").toUpperCase();
     return email?.charAt(0)?.toUpperCase() || "U";
   }
 
   const initials = getInitials(profile.full_name, authUser.email);
-
   const avatarGradient = "bg-gradient-to-r from-indigo-500 to-purple-500";
 
   // LOGOUT
@@ -83,7 +90,7 @@ export default function StudentProfilePage() {
       <div className="bg-gray-50 min-h-screen pt-40 md:pt-48 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-14">
 
-          {/* LEFT */}
+          {/* LEFT SIDE */}
           <aside className="bg-white rounded-3xl shadow-xl p-10 pb-16 relative flex flex-col items-center">
             <button
               onClick={() => setShowEdit(true)}
@@ -94,7 +101,7 @@ export default function StudentProfilePage() {
 
             <div
               className={`w-32 h-32 rounded-full flex items-center justify-center 
-              text-4xl font-extrabold text-white shadow-lg ${avatarGradient}`}
+                text-4xl font-extrabold text-white shadow-lg ${avatarGradient}`}
             >
               {initials}
             </div>
@@ -116,7 +123,7 @@ export default function StudentProfilePage() {
             </p>
           </aside>
 
-          {/* RIGHT */}
+          {/* RIGHT SIDE */}
           <main className="lg:col-span-2 space-y-14">
 
             {/* BOOKMARKED RESOURCES */}
@@ -135,9 +142,13 @@ export default function StudentProfilePage() {
                       key={res.id}
                       className="p-4 bg-gray-50 border rounded-xl shadow-sm hover:shadow-md transition"
                     >
-                      <p className="font-semibold text-gray-900">{res.title}</p>
+                      <p className="font-semibold text-gray-900">
+                        {res.title}
+                      </p>
                       {res.description && (
-                        <p className="text-sm text-gray-600 mt-1">{res.description}</p>
+                        <p className="text-sm text-gray-600 mt-1">
+                          {res.description}
+                        </p>
                       )}
                     </li>
                   ))}
@@ -145,7 +156,7 @@ export default function StudentProfilePage() {
               )}
             </section>
 
-            {/* RECENT ALUMNI */}
+            {/* TOP 3 ALUMNI */}
             <section className="bg-white rounded-3xl shadow-xl p-10">
               <h2 className="text-xl font-bold flex items-center gap-3 text-gray-900 mb-6">
                 <UsersRound className="w-6 h-6 text-indigo-600" />
@@ -153,7 +164,7 @@ export default function StudentProfilePage() {
               </h2>
 
               {recentAlumni.length === 0 ? (
-                <p className="text-gray-600">No recently viewed alumni.</p>
+                <p className="text-gray-600">No alumni found.</p>
               ) : (
                 <ul className="space-y-6">
                   {recentAlumni.map((item) => (
@@ -162,15 +173,23 @@ export default function StudentProfilePage() {
                       className="flex items-center gap-4 p-4 bg-gray-50 border rounded-xl shadow-sm hover:shadow-md transition"
                     >
                       <div className="w-12 h-12 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold">
-                        {getInitials(item.alumni.full_name)}
+                        {getInitials(item.full_name)}
                       </div>
 
                       <div>
                         <p className="font-semibold text-gray-900">
-                          {item.alumni.full_name}
+                          {item.full_name}
                         </p>
+
                         <p className="text-sm text-gray-500">
-                          Viewed on {new Date(item.viewed_at).toLocaleDateString()}
+                          {item.current_role || "Working"} at{" "}
+                          <span className="font-medium">
+                            {item.company_id || "Unknown Company"}
+                          </span>
+                        </p>
+
+                        <p className="text-xs text-gray-400">
+                          Batch of {item.passing_year || "N/A"}
                         </p>
                       </div>
                     </li>
@@ -191,6 +210,7 @@ export default function StudentProfilePage() {
                 Logout
               </button>
             </div>
+
           </main>
         </div>
       </div>

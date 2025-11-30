@@ -61,7 +61,7 @@ export default function AuthCallbackPage() {
         router.push(
           profile.role === "student"
             ? "/profile/studentprofile"
-            : "/profile/alumni-details"
+            : "/profile/alumniprofile"
         );
         return;
       }
