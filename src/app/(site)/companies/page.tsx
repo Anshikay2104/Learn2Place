@@ -38,9 +38,50 @@ export default function CompaniesPage() {
         .order("name");
 
       const list = companiesData || [];
-      setCompanies(list);
+        // normalize logo URLs: support full URLs, public /images paths, Clearbit fallback, and Supabase storage paths
+        const bucket = process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET || "company-logos";
 
-      const ids = list.map((c) => c.slug || c.id);
+        const normalized = await Promise.all(
+          (list || []).map(async (c: any) => {
+            let logo = c.logo_url;
+
+            if (logo) {
+              // already an absolute URL
+              if (/^https?:\/\//i.test(logo) || logo.startsWith("/")) {
+                return { ...c, logo_url: logo };
+              }
+
+              // treat as a Supabase storage path/key and try to get public URL
+              try {
+                // getPublicUrl returns { data: { publicUrl } }
+                const resp = supabase.storage.from(bucket).getPublicUrl(logo);
+                const pub = resp?.data?.publicUrl;
+
+                if (pub) {
+                  return { ...c, logo_url: pub };
+                }
+              } catch (err) {
+                console.warn("Failed to resolve storage public url for", logo, err);
+              }
+            }
+
+            // fallback to Clearbit if website exists, otherwise use UI avatar
+            if (c.website) {
+              try {
+                const hostname = new URL(c.website).hostname;
+                return { ...c, logo_url: `https://logo.clearbit.com/${hostname}` };
+              } catch (e) {
+                // invalid website
+              }
+            }
+
+            return { ...c, logo_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(c.name)}` };
+          })
+        );
+
+        setCompanies(normalized);
+
+      const ids = normalized.map((c) => c.slug || c.id);
 
       const { data: yearRows } = await supabase
         .from("company_experiences")
@@ -143,6 +184,12 @@ export default function CompaniesPage() {
                   src={logo}
                   className="w-20 h-20 object-contain mb-4 rounded-xl border"
                   alt={c.name}
+                  onError={(e) => {
+                    // fallback to ui-avatars if logo fails to load
+                    const target = e.currentTarget as HTMLImageElement;
+                    const fallback = `https://ui-avatars.com/api/?name=${encodeURIComponent(c.name)}`;
+                    if (target.src !== fallback) target.src = fallback;
+                  }}
                 />
                 <h2 className="text-xl font-semibold">{c.name}</h2>
                 <p className="text-gray-500 text-sm">
