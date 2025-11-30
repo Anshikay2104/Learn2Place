@@ -43,8 +43,8 @@ export default async function ExperiencePage({ params }: Props) {
     );
   }
 
-  // Fetch experiences for this company + year
-  const { data: experiences, error } = await supabase
+  // Fetch experiences for this company + year (UNCHANGED)
+  const { data: experiences } = await supabase
     .from("company_experiences")
     .select(`
       id,
@@ -57,7 +57,7 @@ export default async function ExperiencePage({ params }: Props) {
         avatar_url
       )
     `)
-    .eq("company_id", slug) // slug = company identifier
+    .eq("company_id", slug)
     .eq("year", Number(year))
     .order("created_at", { ascending: false });
 
@@ -77,7 +77,9 @@ export default async function ExperiencePage({ params }: Props) {
 
         <div>
           <h1 className="text-3xl font-bold">{companyData.name}</h1>
-          <p className="text-lg text-gray-600">Interview Experiences – {year}</p>
+          <p className="text-lg text-gray-600">
+            Interview Experiences – {year}
+          </p>
         </div>
       </div>
 
@@ -97,31 +99,51 @@ export default async function ExperiencePage({ params }: Props) {
             key={exp.id}
             className={`
               p-8 rounded-2xl shadow-md border mb-10 transition-all hover:shadow-xl
-              ${isEven ? "bg-[#F3F5FF] border-indigo-200" : "bg-[#EEF9FF] border-blue-200"}
+              ${
+                isEven
+                  ? "bg-[#F3F5FF] border-indigo-200"
+                  : "bg-[#EEF9FF] border-blue-200"
+              }
             `}
           >
-            {/* User Info */}
-            <div className="flex items-center gap-5 mb-6">
+            {/* ✅ Person Info */}
+            <div className="flex items-center gap-5 mb-3">
               <img
                 src={exp.profiles?.avatar_url || "/default-avatar.png"}
-                className="w-16 h-16 rounded-full border-2 border-white shadow-sm object-cover"
+                className="w-14 h-14 rounded-full border-2 border-white shadow-sm object-cover"
                 alt={exp.profiles?.full_name || "Avatar"}
               />
 
               <div>
+                {/* Person Name */}
                 <h2 className="text-2xl font-semibold">
                   {exp.profiles?.full_name || "Anonymous User"}
                 </h2>
-                <p className="text-gray-600 text-lg">{exp.hiring_role}</p>
+
+                {/* Current Company */}
+                <p className="text-sm text-gray-500">
+                  Current Company:{" "}
+                  <span className="font-medium">Current</span>
+                </p>
               </div>
             </div>
 
-            {/* Experience Description */}
-            <p className="text-gray-800 text-lg leading-8 whitespace-pre-wrap mb-6">
-              {exp.process_overview}
-            </p>
+            {/* ✅ Role + Experience (Grouped & Near) */}
+            <div className="space-y-1 mb-5">
+              <p>
+                <span className="font-semibold">Hiring Role:</span>{" "}
+                {exp.hiring_role || "Not specified"}
+              </p>
 
-            {/* Tips */}
+              <div>
+                <p className="font-semibold">Experience:</p>
+                <p className="text-gray-800 text-lg leading-8 whitespace-pre-wrap">
+                  {exp.process_overview}
+                </p>
+              </div>
+            </div>
+
+            {/* ✅ Tips */}
             {exp.tips && (
               <div className="p-5 bg-white rounded-xl border-l-4 border-indigo-600 shadow-sm">
                 <strong className="text-indigo-700">Tips:</strong>{" "}

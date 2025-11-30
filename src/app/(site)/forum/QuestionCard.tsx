@@ -46,7 +46,7 @@ export default function QuestionCard({
 
         <div className="flex justify-between items-center mt-4 text-xs text-gray-500">
           <div className="flex gap-2">
-            <span className="bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded">#general</span>
+            <span className="bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded"></span>
           </div>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1">
