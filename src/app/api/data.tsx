@@ -116,13 +116,13 @@ export const MentorData: {
     profession: "Software Engineer, GoDaddy",
     name: "Aditi Upadhyay",
     imgSrc: "/images/mentor/aditipic.jpeg",
-    linkedin: "https://www.linkedin.com/in/aditi-upadhyay/",
+    linkedin: "https://www.linkedin.com/in/aditi-upadhyay-8a200a271/",
   },
   {
     profession: "Software Engineer, IBM ISL",
     name: "Gunjan Aggarwal",
     imgSrc: "/images/mentor/gunjanpic.jpg",
-    linkedin: "https://www.linkedin.com/in/gunjan-aggarwal/",
+    linkedin: "https://www.linkedin.com/in/gunjanaggarwal23507/",
   },
 ];
 

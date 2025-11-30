@@ -42,14 +42,31 @@ const Mentor = () => {
                     height={180} // increased image size
                     className="inline-block m-auto rounded-full object-cover"
                   />
-                  <div className="absolute right-3 bottom-3 bg-white rounded-full p-2">
-                    <Image
-                      src={`${getImagePrefix()}images/mentor/linkedin.svg`}
-                      alt="linkedin-image"
-                      width={18}  // slightly bigger icon
-                      height={18}
-                    />
-                  </div>
+                  {items.linkedin ? (
+                    <a
+                      href={items.linkedin}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="absolute right-3 bottom-3 bg-white rounded-full p-2 inline-block"
+                      aria-label={`Open ${items.name} on LinkedIn`}
+                    >
+                      <Image
+                        src={`${getImagePrefix()}images/mentor/linkedin.svg`}
+                        alt="linkedin-image"
+                        width={18}
+                        height={18}
+                      />
+                    </a>
+                  ) : (
+                    <div className="absolute right-3 bottom-3 bg-white rounded-full p-2">
+                      <Image
+                        src={`${getImagePrefix()}images/mentor/linkedin.svg`}
+                        alt="linkedin-image"
+                        width={18}
+                        height={18}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div className="mt-2">
