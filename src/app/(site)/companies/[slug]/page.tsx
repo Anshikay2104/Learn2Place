@@ -4,13 +4,18 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
-/* ✅ TYPE SAFE */
-type CompanyExperience = {
+/* TYPE-SAFE STRUCT */
+type Experience = {
   id: string;
   company_id: string;
   year: number | null;
   hiring_role: string | null;
   process_overview: string | null;
+  user: {
+    full_name: string | null;
+    current_role: string | null;
+    company_id: string | null;
+  } | null;
 };
 
 export default function CompanyOverviewPage() {
@@ -18,7 +23,7 @@ export default function CompanyOverviewPage() {
   const router = useRouter();
   const supabase = createClientComponentClient();
 
-  const [experiences, setExperiences] = useState<CompanyExperience[]>([]);
+  const [experiences, setExperiences] = useState<Experience[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -27,12 +32,37 @@ export default function CompanyOverviewPage() {
     const loadExperiences = async () => {
       const { data, error } = await supabase
         .from("company_experiences")
-        .select("id, company_id, year, hiring_role, process_overview")
+        .select(`
+          id,
+          company_id,
+          year,
+          hiring_role,
+          process_overview,
+          user:profiles (
+            full_name,
+            current_role,
+            company_id
+          )
+        `)
         .eq("company_id", slug)
         .order("year", { ascending: false });
 
-      if (!error && data) {
-        setExperiences(data);
+      if (error) {
+        console.error("Fetch Error:", error);
+      } else if (data) {
+        // Supabase returns related rows as arrays (e.g. user: profiles[]).
+        // Normalize the response so `user` is a single object or null to
+        // match the `Experience` type.
+        const normalized = (data as any[]).map((row) => ({
+          id: row.id,
+          company_id: row.company_id,
+          year: row.year ?? null,
+          hiring_role: row.hiring_role ?? null,
+          process_overview: row.process_overview ?? null,
+          user: Array.isArray(row.user) ? row.user[0] ?? null : row.user ?? null,
+        })) as Experience[];
+
+        setExperiences(normalized);
       }
 
       setLoading(false);
@@ -56,12 +86,12 @@ export default function CompanyOverviewPage() {
     );
   }
 
-  /* ✅ UNIQUE YEARS */
+  /* UNIQUE YEARS */
   const years: number[] = Array.from(
     new Set(
       experiences
-        .map((e) => e.year)
-        .filter((year): year is number => year !== null)
+        .map((exp) => exp.year)
+        .filter((y): y is number => y !== null)
     )
   );
 
@@ -71,7 +101,7 @@ export default function CompanyOverviewPage() {
         {slug} Interview Experiences
       </h1>
 
-      {/* ✅ YEAR FILTER */}
+      {/* YEAR FILTER */}
       <div className="flex flex-wrap gap-3 mb-10">
         {years.map((year) => (
           <button
@@ -84,33 +114,41 @@ export default function CompanyOverviewPage() {
         ))}
       </div>
 
-      {/* ✅ EXPERIENCE LIST */}
+      {/* EXPERIENCE LIST */}
       <div className="space-y-6">
         {experiences.map((exp) => (
           <div
             key={exp.id}
             className="rounded-xl border bg-white p-6 shadow-sm hover:shadow-md transition"
           >
-            {/* ✅ Person Name */}
-            <h3 className="text-xl font-semibold mb-1">Anonymous</h3>
+            {/* PERSON NAME */}
+            <h3 className="text-xl font-semibold mb-1">
+              {exp.user?.full_name || "Anonymous"}
+            </h3>
 
-            {/* ✅ Current Company */}
-            <p className="text-sm text-gray-500 mb-2">
-              Current Company:{" "}
-              <span className="font-medium">Current</span>
+            {/* CURRENT ROLE + COMPANY */}
+            <p className="text-sm text-gray-500 mb-3">
+              Working as{" "}
+              <span className="font-semibold">
+                {exp.user?.current_role || "Unknown role"}
+              </span>{" "}
+              at{" "}
+              <span className="font-semibold">
+                {exp.user?.company_id || "Unknown company"}
+              </span>
             </p>
 
-            {/* ✅ Role + Experience (Grouped) */}
+            {/* ROLE & EXPERIENCE */}
             <div className="space-y-1">
               <p>
-                <span className="font-semibold">Role:</span>{" "}
+                <span className="font-semibold">Hiring For:</span>{" "}
                 {exp.hiring_role || "Not specified"}
               </p>
 
               {exp.process_overview && (
-                <div>
+                <div className="mt-2">
                   <p className="font-semibold">Experience:</p>
-                  <p className="text-gray-700 leading-7">
+                  <p className="text-gray-700 leading-7 whitespace-pre-line">
                     {exp.process_overview}
                   </p>
                 </div>

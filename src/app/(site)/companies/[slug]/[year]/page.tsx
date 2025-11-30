@@ -10,6 +10,8 @@ const supabase = createClient(
 type Profile = {
   full_name: string | null;
   avatar_url?: string | null;
+  current_role?: string | null;
+  company_id?: string | null;
 };
 
 type ExperienceRow = {
@@ -28,7 +30,9 @@ type Props = {
 export default async function ExperiencePage({ params }: Props) {
   const { slug, year } = params;
 
-  // Fetch matching company by slug
+  // ============================
+  // Fetch Company
+  // ============================
   const { data: companyData, error: companyError } = await supabase
     .from("companies")
     .select("name, logo_url")
@@ -43,7 +47,9 @@ export default async function ExperiencePage({ params }: Props) {
     );
   }
 
-  // Fetch experiences for this company + year (UNCHANGED)
+  // ============================
+  // Fetch Interview Experiences WITH Profile Join
+  // ============================
   const { data: experiences } = await supabase
     .from("company_experiences")
     .select(`
@@ -54,7 +60,9 @@ export default async function ExperiencePage({ params }: Props) {
       created_at,
       profiles:profiles!company_experiences_user_id_fkey (
         full_name,
-        avatar_url
+        avatar_url,
+        current_role,
+        company_id
       )
     `)
     .eq("company_id", slug)
@@ -62,6 +70,10 @@ export default async function ExperiencePage({ params }: Props) {
     .order("created_at", { ascending: false });
 
   const experiencesList = experiences as ExperienceRow[] | null;
+
+  // ============================
+  // UI STARTS HERE
+  // ============================
 
   return (
     <div className="max-w-4xl mx-auto py-10 px-4">
@@ -83,7 +95,7 @@ export default async function ExperiencePage({ params }: Props) {
         </div>
       </div>
 
-      {/* No Experience Found */}
+      {/* No Experience */}
       {experiencesList?.length === 0 && (
         <p className="text-gray-600 text-lg">
           No experiences added for {companyData.name} in {year}.
@@ -106,7 +118,7 @@ export default async function ExperiencePage({ params }: Props) {
               }
             `}
           >
-            {/* ✅ Person Info */}
+            {/* Person Info */}
             <div className="flex items-center gap-5 mb-3">
               <img
                 src={exp.profiles?.avatar_url || "/default-avatar.png"}
@@ -115,20 +127,26 @@ export default async function ExperiencePage({ params }: Props) {
               />
 
               <div>
-                {/* Person Name */}
+                {/* Name */}
                 <h2 className="text-2xl font-semibold">
                   {exp.profiles?.full_name || "Anonymous User"}
                 </h2>
 
-                {/* Current Company */}
+                {/* Role + Company */}
                 <p className="text-sm text-gray-500">
-                  Current Company:{" "}
-                  <span className="font-medium">Current</span>
+                  Working as{" "}
+                  <span className="font-semibold">
+                    {exp.profiles?.current_role || "Unknown role"}
+                  </span>{" "}
+                  at{" "}
+                  <span className="font-semibold">
+                    {exp.profiles?.company_id || "Unknown company"}
+                  </span>
                 </p>
               </div>
             </div>
 
-            {/* ✅ Role + Experience (Grouped & Near) */}
+            {/* Hiring Role + Experience */}
             <div className="space-y-1 mb-5">
               <p>
                 <span className="font-semibold">Hiring Role:</span>{" "}
@@ -143,7 +161,7 @@ export default async function ExperiencePage({ params }: Props) {
               </div>
             </div>
 
-            {/* ✅ Tips */}
+            {/* Tips */}
             {exp.tips && (
               <div className="p-5 bg-white rounded-xl border-l-4 border-indigo-600 shadow-sm">
                 <strong className="text-indigo-700">Tips:</strong>{" "}
