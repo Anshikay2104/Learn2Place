@@ -1,6 +1,6 @@
 const AboutUs = () => {
     return (
-        <section id="aboutus" className="mb-12">
+        <section id="aboutus" className="mb-12 scroll-mt-32">
             <h2 className="text-2xl font-bold mb-4">About Us – Learn2Place</h2>
 
             <p className="text-base mb-4">

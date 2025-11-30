@@ -1,6 +1,6 @@
 const Aim = () => {
     return (
-        <section id="vision" className="mb-12">
+        <section id="vision" className="mb-12 scroll-mt-32">
             <h2 className="text-2xl font-bold mb-4">Our Aim / Vision</h2>
 
             <p className="text-base mb-4">

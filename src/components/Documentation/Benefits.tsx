@@ -1,6 +1,6 @@
 const Benefits = () => {
     return (
-        <section id="benefits" className="mb-12">
+        <section id="benefits" className="mb-12 scroll-mt-32">
             <h2 className="text-2xl font-bold mb-4">Benefits of Learn2Place</h2>
 
             <ul className="list-disc ml-5 space-y-4 text-base">

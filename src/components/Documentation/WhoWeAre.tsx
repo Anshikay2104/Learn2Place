@@ -1,6 +1,6 @@
 const WhoWeAre = () => {
     return (
-        <section id="whoweare" className="mb-12">
+        <section id="whoweare" className="mb-12 scroll-mt-32">
             <h2 className="text-2xl font-bold mb-4">Who We Are</h2>
 
             <p className="text-base mb-4">

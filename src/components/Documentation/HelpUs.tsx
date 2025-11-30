@@ -1,6 +1,6 @@
 const HowYouCanHelp = () => {
     return (
-        <section id="howyoucanhelp" className="mb-12">
+        <section id="howyoucanhelp" className="mb-12 scroll-mt-32">
             <h2 className="text-2xl font-bold mb-4">How You Can Help</h2>
 
             <p className="text-base mb-4">
