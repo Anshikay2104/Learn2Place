@@ -56,49 +56,49 @@ export default function AlumniProfilePage() {
         .eq("user_id", user.id);
 
       // ------- QUESTIONS -------
-      const { count: questionCount } = await supabase
+      const { count: questionCount, data: userQuestions } = await supabase
         .from("questions")
-        .select("*", { count: "exact", head: true })
+        .select("id", { count: "exact", head: false })
         .eq("asker_id", user.id);
 
       // ------- ANSWERS -------
-      const { count: answerCount } = await supabase
+      const { count: answerCount, data: userAnswers } = await supabase
         .from("answers")
-        .select("*", { count: "exact", head: true })
+        .select("id", { count: "exact", head: false })
         .eq("responder_id", user.id);
 
-      // ------- UPVOTES -------
-      const { data: userQuestions } = await supabase
-        .from("questions")
-        .select("id")
-        .eq("asker_id", user.id);
+      const questionIds = userQuestions?.map((q: any) => q.id) || [];
+      const answerIds = userAnswers?.map((a: any) => a.id) || [];
 
-      const { data: userAnswers } = await supabase
-        .from("answers")
-        .select("id")
-        .eq("responder_id", user.id);
+      // ------- QUESTION UPVOTES (votes table) -------
+      let qUpvotes = 0;
+      if (questionIds.length > 0) {
+        const { count } = await supabase
+          .from("votes")
+          .select("*", { count: "exact", head: true })
+          .eq("target_type", "question")
+          .eq("vote", 1)
+          .in("target_id", questionIds);
 
-      const questionIds = userQuestions?.map(q => q.id) || [];
-      const answerIds = userAnswers?.map(a => a.id) || [];
+        qUpvotes = count || 0;
+      }
 
-      const { count: qUpvotes } = await supabase
-        .from("votes")
-        .select("*", { count: "exact", head: true })
-        .eq("target_type", "question")
-        .eq("vote", 1)
-        .in("target_id", questionIds);
+      // ------- ANSWER UPVOTES (answer_upvotes table) -------
+      let aUpvotes = 0;
+      if (answerIds.length > 0) {
+        const { count } = await supabase
+          .from("answer_upvotes")
+          .select("*", { count: "exact", head: true })
+          .in("answer_id", answerIds);
 
-      const { count: aUpvotes } = await supabase
-        .from("votes")
-        .select("*", { count: "exact", head: true })
-        .eq("target_type", "answer")
-        .eq("vote", 1)
-        .in("target_id", answerIds);
+        aUpvotes = count || 0;
+      }
 
+      // ------- SET FINAL STATS -------
       setStats({
         resources: resourcesCount || 0,
         posts: (questionCount || 0) + (answerCount || 0),
-        upvotes: (qUpvotes || 0) + (aUpvotes || 0),
+        upvotes: qUpvotes + aUpvotes,
       });
 
       // ------- RESOURCES LIST -------
@@ -110,7 +110,7 @@ export default function AlumniProfilePage() {
 
       setResources(userResources || []);
 
-      // ------- ACTIVITY -------
+      // ------- RECENT ACTIVITY -------
       const { data: recentQ } = await supabase
         .from("questions")
         .select("*")
@@ -156,6 +156,7 @@ export default function AlumniProfilePage() {
 
   return (
     <div className="bg-gray-50 min-h-screen pt-40 md:pt-48 px-4 sm:px-6 lg:px-8">
+
       {showEdit && (
         <EditProfileModal
           user={authUser}
@@ -169,7 +170,7 @@ export default function AlumniProfilePage() {
 
       <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-14">
 
-        {/* LEFT CARD ====================================================== */}
+        {/* LEFT CARD */}
         <aside className="bg-white rounded-3xl shadow-xl p-8 relative">
           <button
             onClick={() => setShowEdit(true)}
@@ -216,7 +217,7 @@ export default function AlumniProfilePage() {
           </div>
         </aside>
 
-        {/* RIGHT CONTENT ================================================== */}
+        {/* RIGHT CONTENT */}
         <main className="lg:col-span-2 space-y-10">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             <StatCard title="Resources Shared" value={stats.resources} icon={BookOpen} />
@@ -224,7 +225,7 @@ export default function AlumniProfilePage() {
             <StatCard title="Upvotes Received" value={stats.upvotes} icon={Award} />
           </div>
 
-          {/* Shared Resources */}
+          {/* Resources */}
           <section className="bg-white rounded-3xl shadow-xl p-8">
             <h2 className="text-xl font-bold text-gray-900 mb-6">Shared Resources</h2>
 
@@ -247,7 +248,7 @@ export default function AlumniProfilePage() {
             )}
           </section>
 
-          {/* Activity */}
+          {/* Recent Activity */}
           <section className="bg-white rounded-3xl shadow-xl p-8">
             <h2 className="text-xl font-bold text-gray-900 mb-6">Recent Forum Activity</h2>
 
@@ -280,7 +281,7 @@ export default function AlumniProfilePage() {
             )}
           </section>
 
-          {/* LOGOUT */}
+          {/* Logout */}
           <div className="flex justify-center">
             <button
               onClick={handleLogout}
