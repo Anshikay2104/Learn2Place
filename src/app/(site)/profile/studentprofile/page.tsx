@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { UsersRound, Bookmark, LogOut, Edit } from "lucide-react";
 import EditProfileModal from "@/components/Profile/EditProfileModal";
+import Link from "next/link";
 
 export default function StudentProfilePage() {
   const supabase = createClientComponentClient();
@@ -38,15 +39,16 @@ export default function StudentProfilePage() {
         .select("resource:resource_id(*)")
         .eq("user_id", user.id);
 
+      // Extract actual resources
       setBookmarkedResources((bookmarkData || []).map((b) => b.resource));
 
-      // FETCH ONLY TOP 3 MOST RECENT ALUMNI
+      // RECENT ALUMNI
       const { data: alumniList } = await supabase
         .from("profiles")
         .select("id, full_name, current_role, company_id, passing_year")
         .eq("role", "alumni")
         .order("updated_at", { ascending: false })
-        .limit(3);   // 🔥 TOP 3 ONLY
+        .limit(3);
 
       setRecentAlumni(alumniList || []);
     }
@@ -56,13 +58,11 @@ export default function StudentProfilePage() {
 
   if (!authUser || !profile) {
     return (
-      <div className="pt-48 text-center text-xl font-semibold">
-        Loading…
-      </div>
+      <div className="pt-48 text-center text-xl font-semibold">Loading…</div>
     );
   }
 
-  // Initials
+  // Initials generator
   function getInitials(name?: string, email?: string) {
     if (name) return name.split(" ").map((w) => w[0]).join("").toUpperCase();
     return email?.charAt(0)?.toUpperCase() || "U";
@@ -89,7 +89,7 @@ export default function StudentProfilePage() {
 
       <div className="bg-gray-50 min-h-screen pt-40 md:pt-48 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-14">
-
+          
           {/* LEFT SIDE */}
           <aside className="bg-white rounded-3xl shadow-xl p-10 pb-16 relative flex flex-col items-center">
             <button
@@ -138,18 +138,24 @@ export default function StudentProfilePage() {
               ) : (
                 <ul className="space-y-4">
                   {bookmarkedResources.map((res) => (
-                    <li
-                      key={res.id}
-                      className="p-4 bg-gray-50 border rounded-xl shadow-sm hover:shadow-md transition"
-                    >
-                      <p className="font-semibold text-gray-900">
-                        {res.title}
-                      </p>
-                      {res.description && (
-                        <p className="text-sm text-gray-600 mt-1">
-                          {res.description}
+                    <li key={res.id}>
+                      <a
+                        href={res.url} // 🔥 Opens actual resource link
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block p-4 bg-gray-50 border rounded-xl shadow-sm 
+                               hover:shadow-md hover:bg-gray-100 transition"
+                      >
+                        <p className="font-semibold text-gray-900">
+                          {res.title}
                         </p>
-                      )}
+
+                        {res.description && (
+                          <p className="text-sm text-gray-600 mt-1">
+                            {res.description}
+                          </p>
+                        )}
+                      </a>
                     </li>
                   ))}
                 </ul>
