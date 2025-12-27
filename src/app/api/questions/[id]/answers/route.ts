@@ -4,10 +4,14 @@ import { cookies } from "next/headers";
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { createClient } from "@supabase/supabase-js";
 
-type Params = { params: { id: string } };
+// context.params can be a Promise in Next.js types; resolve it to get id
+type Params = { params: { id: string } | Promise<{ id: string }> };
 
-export async function GET(_req: NextRequest, { params }: Params) {
+export async function GET(_req: NextRequest, context: Params) {
   const supabase = createRouteHandlerClient({ cookies });
+
+  const resolvedParams = await context.params;
+  const questionId = resolvedParams.id;
 
   const { data, error } = await supabase
     .from("answers")
@@ -20,7 +24,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
       profiles!answers_responder_id_fkey(full_name, role)
     `
     )
-    .eq("question_id", params.id)
+    .eq("question_id", questionId)
     .order("created_at", { ascending: true });
 
   if (error) {
@@ -57,12 +61,15 @@ export async function GET(_req: NextRequest, { params }: Params) {
   return NextResponse.json(formatted);
 }
 
-export async function POST(req: NextRequest, { params }: Params) {
+export async function POST(req: NextRequest, context: Params) {
   const supabase = createRouteHandlerClient({ cookies });
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  const resolvedParams = await context.params;
+  const questionId = resolvedParams.id;
 
   // Allow anonymous answers: do not require authentication
   const responderId = user ? user.id : null;
@@ -76,7 +83,7 @@ export async function POST(req: NextRequest, { params }: Params) {
   if (responderId !== null) {
     const res = await supabase
       .from("answers")
-      .insert({ question_id: params.id, responder_id: responderId, body: text })
+      .insert({ question_id: questionId, responder_id: responderId, body: text })
       .select()
       .single();
     data = res.data;
@@ -96,7 +103,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     const svc = createClient(url, key);
     const res = await svc
       .from("answers")
-      .insert({ question_id: params.id, responder_id: null, body: text })
+      .insert({ question_id: questionId, responder_id: null, body: text })
       .select()
       .single();
     data = res.data;

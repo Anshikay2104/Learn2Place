@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import type { LucideIcon } from "lucide-react";
+
 
 import {
   Briefcase,
@@ -300,7 +302,13 @@ export default function AlumniProfilePage() {
   );
 }
 
-function StatCard({ title, value, icon: Icon }) {
+type StatCardProps = {
+  title: string;
+  value: number | string;
+  icon: LucideIcon;
+};
+
+function StatCard({ title, value, icon: Icon }: StatCardProps) {
   return (
     <div className="bg-white rounded-3xl shadow-xl p-6 flex items-center gap-4 hover:shadow-2xl transition">
       <div className="bg-indigo-100 p-4 rounded-full">
@@ -314,3 +322,4 @@ function StatCard({ title, value, icon: Icon }) {
     </div>
   );
 }
+
