@@ -2,6 +2,9 @@
 
 import React, { useEffect, useState } from "react";
 import { ThumbsUp } from "lucide-react";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+
+/* ---------- Types ---------- */
 
 type Answer = {
   id: string;
@@ -18,33 +21,39 @@ type Question = {
   body: string;
 };
 
-type Props = { id: string };
+type Props = {
+  id: string;
+};
+
+/* ---------- Component ---------- */
 
 export default function ForumThreadClient({ id }: Props) {
+  const supabase = createClientComponentClient();
+
   const [question, setQuestion] = useState<Question | null>(null);
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [reply, setReply] = useState("");
   const [loading, setLoading] = useState(true);
-  const [upvoting, setUpvoting] = useState<string | null>(null);
-  const [userUpvotes, setUserUpvotes] = useState<Set<string>>(new Set());
+
+  /* ---------- Fetch Question + Answers ---------- */
 
   const fetchThread = async () => {
     setLoading(true);
 
-    // question
-    const qRes = await fetch(`/api/questions?id=${id}`);
-    const qData = await qRes.json();
+    // Fetch question
+    const qRes = await fetch(`/api/questions/${id}`);
+    if (!qRes.ok) {
+      setQuestion(null);
+      setAnswers([]);
+      setLoading(false);
+      return;
+    }
+    setQuestion(await qRes.json());
 
-    // our GET /api/questions returns list, filter one
-    const q = (qData as Question[]).find((q) => q.id === id) ?? qData;
-
-    setQuestion(q);
-
-    // answers
+    // Fetch answers
     const aRes = await fetch(`/api/questions/${id}/answers`);
-    const aData = await aRes.json();
+    setAnswers(aRes.ok ? await aRes.json() : []);
 
-    setAnswers(aData);
     setLoading(false);
   };
 
@@ -52,17 +61,32 @@ export default function ForumThreadClient({ id }: Props) {
     fetchThread();
   }, [id]);
 
+  /* ---------- Post Answer ---------- */
+
   const handleReply = async () => {
     if (!reply.trim()) return;
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      alert("Please login to post an answer");
+      return;
+    }
 
     const res = await fetch(`/api/questions/${id}/answers`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: reply }),
+      body: JSON.stringify({
+        text: reply,
+        responder_id: user.id,
+      }),
     });
 
     if (!res.ok) {
-      alert("Failed to post answer");
+      const err = await res.json().catch(() => ({}));
+      alert(err.error || "Failed to post answer");
       return;
     }
 
@@ -70,97 +94,79 @@ export default function ForumThreadClient({ id }: Props) {
     fetchThread();
   };
 
+  /* ---------- Upvote ---------- */
+
   const handleUpvote = async (answerId: string) => {
-    setUpvoting(answerId);
-    try {
-      const res = await fetch(`/api/answers/${answerId}/upvote`, {
-        method: "POST",
-      });
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        alert(errData.error || "Failed to upvote");
-        setUpvoting(null);
-        return;
-      }
-
-      const result = await res.json();
-
-      // Update local upvote tracking
-      const newUpvotes = new Set(userUpvotes);
-      if (result.status === "added") {
-        newUpvotes.add(answerId);
-      } else if (result.status === "removed") {
-        newUpvotes.delete(answerId);
-      }
-      setUserUpvotes(newUpvotes);
-
-      // Refresh thread data
-      fetchThread();
-    } catch (err) {
-      console.error("Upvote error:", err);
-      alert("Failed to upvote answer");
-    } finally {
-      setUpvoting(null);
+    if (!user) {
+      alert("Login required to upvote");
+      return;
     }
+
+    const res = await fetch(`/api/answers/${answerId}/upvote`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user_id: user.id }),
+    });
+
+    if (!res.ok) {
+      alert("Failed to upvote");
+      return;
+    }
+
+    fetchThread(); // refresh counts
   };
 
+  /* ---------- States ---------- */
+
   if (loading) {
-    return <div className="pt-48 text-center">Loading...</div>;
+    return <div className="pt-40 text-center">Loading…</div>;
   }
 
   if (!question) {
-    return <div className="pt-48 text-center">Question not found.</div>;
+    return <div className="pt-40 text-center">Question not found.</div>;
   }
 
+  /* ---------- UI ---------- */
+
   return (
-  <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-white to-white px-6 pt-36">
-    <div className="max-w-4xl mx-auto space-y-8">
+    <div className="min-h-screen bg-gray-50 px-6 pt-32">
+      <div className="max-w-4xl mx-auto space-y-8">
 
-      {/* Question Card */}
-      <div className="bg-white border border-indigo-100 rounded-2xl shadow-sm p-8">
-        <span className="inline-block mb-3 text-xs font-semibold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">
-          Question
-        </span>
+        {/* Question */}
+        <div className="bg-white border rounded-xl p-6">
+          <h1 className="text-2xl font-bold text-gray-900">
+            {question.title}
+          </h1>
+          <p className="mt-3 text-gray-700 whitespace-pre-line">
+            {question.body}
+          </p>
+        </div>
 
-        <h1 className="text-3xl font-bold text-gray-900">
-          {question.title}
-        </h1>
+        {/* Answers */}
+        <div className="bg-white border rounded-xl p-6 space-y-4">
+          <h2 className="text-lg font-semibold">
+            Answers ({answers.length})
+          </h2>
 
-        <p className="mt-4 text-gray-700 leading-relaxed whitespace-pre-line">
-          {question.body}
-        </p>
-      </div>
-
-      {/* Answers Section */}
-      <section className="bg-white border rounded-2xl shadow-sm p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-5">
-          Answers <span className="text-gray-400">({answers.length})</span>
-        </h2>
-
-        <div className="space-y-4">
           {answers.map((a) => (
             <div
               key={a.id}
-              className="flex gap-4 border rounded-xl p-5 bg-gray-50 hover:bg-white transition"
+              className="flex justify-between items-start border rounded-lg p-4 bg-gray-50"
             >
-              {/* Avatar */}
-              <div className="w-10 h-10 rounded-full bg-indigo-600 text-white flex items-center justify-center font-semibold">
-                {a.author_name[0]}
-              </div>
+              {/* Left */}
+              <div>
+                <p className="font-medium text-gray-900">
+                  {a.author_name}
+                </p>
+                <p className="text-sm text-gray-500">
+                  {a.author_role}
+                </p>
 
-              {/* Content */}
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <p className="font-medium text-gray-800">
-                    {a.author_name}
-                  </p>
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">
-                    {a.author_role}
-                  </span>
-                </div>
-
-                <p className="mt-2 text-gray-700">{a.body}</p>
+                <p className="mt-2 text-gray-800">{a.body}</p>
 
                 <p className="mt-2 text-xs text-gray-400">
                   {new Date(a.created_at).toLocaleString()}
@@ -170,53 +176,47 @@ export default function ForumThreadClient({ id }: Props) {
               {/* Upvote */}
               <button
                 onClick={() => handleUpvote(a.id)}
-                disabled={upvoting === a.id}
-                className={`flex items-center gap-1 px-3 py-2 h-fit rounded-full border text-sm transition
-                  ${
-                    userUpvotes.has(a.id)
-                      ? "bg-indigo-600 text-white border-indigo-600"
-                      : "bg-white hover:bg-indigo-50"
-                  }
-                  ${upvoting === a.id && "opacity-50 cursor-not-allowed"}
-                `}
+                className="flex items-center gap-1 text-indigo-600 hover:text-indigo-800"
+                title="Upvote"
               >
-                <ThumbsUp size={14} /> {a.upvotes}
+                <ThumbsUp size={18} />
+                <span className="text-sm font-medium">
+                  {a.upvotes}
+                </span>
               </button>
             </div>
           ))}
 
           {answers.length === 0 && (
-            <p className="text-sm text-gray-500 text-center py-6">
+            <p className="text-sm text-gray-500">
               No answers yet. Be the first to help ✨
             </p>
           )}
         </div>
-      </section>
 
-      {/* Reply Section */}
-      <section className="bg-white border rounded-2xl shadow-sm p-6">
-        <h2 className="text-xl font-semibold mb-3">Your Answer</h2>
+        {/* Reply */}
+        <div className="bg-white border rounded-xl p-6">
+          <h3 className="font-semibold mb-2">Your Answer</h3>
 
-        <textarea
-          value={reply}
-          onChange={(e) => setReply(e.target.value)}
-          rows={4}
-          placeholder="Share your experience or advice..."
-          className="w-full border rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-        />
+          <textarea
+            value={reply}
+            onChange={(e) => setReply(e.target.value)}
+            rows={4}
+            className="w-full border rounded p-3"
+            placeholder="Write your answer…"
+          />
 
-        <div className="flex justify-end mt-4">
-          <button
-            onClick={handleReply}
-            className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-medium hover:bg-indigo-700 transition"
-          >
-            Post Answer
-          </button>
+          <div className="flex justify-end mt-3">
+            <button
+              onClick={handleReply}
+              className="bg-indigo-600 text-white px-5 py-2 rounded hover:bg-indigo-700"
+            >
+              Post Answer
+            </button>
+          </div>
         </div>
-      </section>
 
+      </div>
     </div>
-  </div>
-);
-
+  );
 }

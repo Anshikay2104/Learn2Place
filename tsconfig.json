@@ -39,7 +39,7 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
-  ],
+, "src/middleware.ts.disabled"  ],
   "exclude": [
     "node_modules"
   ]

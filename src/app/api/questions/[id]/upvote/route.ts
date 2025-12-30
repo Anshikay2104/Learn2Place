@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-export async function POST(
-  req: Request,
-  context: { params: Promise<{ id: string }> }
-) {
-  const { id: answerId } = await context.params;
+type Params = {
+  params: Promise<{ id: string }>;
+};
+
+export async function POST(req: Request, { params }: Params) {
+  const { id: answerId } = await params;
   const body = await req.json();
 
   const userId = body.user_id;
@@ -17,7 +18,7 @@ export async function POST(
     );
   }
 
-  // ✅ SAME PATTERN AS POST QUESTION
+  // ✅ SAME STYLE AS POST QUESTION
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -31,36 +32,21 @@ export async function POST(
     .eq("user_id", userId)
     .maybeSingle();
 
-  // Toggle OFF
+  // Toggle
   if (existing) {
-    const { error } = await supabase
+    await supabase
       .from("answer_upvotes")
       .delete()
       .eq("answer_id", answerId)
       .eq("user_id", userId);
 
-    if (error) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
-      );
-    }
-
     return NextResponse.json({ status: "removed" });
   }
 
-  // Toggle ON
-  const { error } = await supabase.from("answer_upvotes").insert({
+  await supabase.from("answer_upvotes").insert({
     answer_id: answerId,
     user_id: userId,
   });
-
-  if (error) {
-    return NextResponse.json(
-      { error: error.message },
-      { status: 500 }
-    );
-  }
 
   return NextResponse.json({ status: "added" });
 }

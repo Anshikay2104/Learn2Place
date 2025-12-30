@@ -1,10 +1,11 @@
-// app/forum/[id]/page.tsx
 import ForumThreadClient from "./ForumThreadClient";
 
-export default function ForumThreadPage({
-  params,
-}: {
-  params: { id: string };
-}) {
-  return <ForumThreadClient id={params.id} />;
+type Props = {
+  params: Promise<{ id: string }>;
+};
+
+export default async function ForumThreadPage({ params }: Props) {
+  const { id } = await params; // ✅ unwrap params
+
+  return <ForumThreadClient id={id} />;
 }
